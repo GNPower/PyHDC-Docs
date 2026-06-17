@@ -41,12 +41,14 @@ Step 2: Generate hypervectors
 Each call to ``.generate()`` draws a fresh random hypervector.  Two
 independently generated hypervectors are nearly orthogonal by design.
 
-You can generate a *batch* of hypervectors in one call:
+You can generate a *batch* of hypervectors in one call. Batches are
+dimension-first: a batch of ``N`` vectors has shape ``(D, N)``, one hypervector
+per column.
 
 .. code-block:: python
 
-   batch = enc.generate(size=100)
-   print(batch.shape)   # (100, 10000)
+   batch = enc.generate(size=(10_000, 100))
+   print(batch.shape)   # (10000, 100)
 
 
 Step 3: The three operations
@@ -56,7 +58,7 @@ Similarity
 ^^^^^^^^^^
 
 Returns a scalar in [-1, 1]. Use it to measure how related two hypervectors
-are (0 ≈ unrelated, 1 = identical).
+are (0 ~= unrelated, 1 = identical).
 
 .. code-block:: python
 
@@ -151,6 +153,14 @@ when creating the encoding:
 
        # GPU: requires CUDA
        enc_gpu = pyhdc.MAP_B(dimension=10_000, backend="torch", device="cuda")
+
+Or set a process-wide default so every new encoding uses it:
+
+.. code-block:: python
+
+   pyhdc.prefer_torch()                  # or pyhdc.prefer_cuda()
+   enc = pyhdc.MAP_B(dimension=10_000)   # inherits the torch backend
+   pyhdc.prefer_numpy()                  # reset to numpy
 
 You can also move an existing hypervector between backends:
 

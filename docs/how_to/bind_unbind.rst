@@ -24,6 +24,27 @@ The recovered vector is not identical to ``value``; it carries noise from
 the finite dimension. Use it as a query against a codebook to identify the
 closest match.
 
+Binding batches column by column
+---------------------------------
+
+A batch of ``N`` hypervectors is a ``(D, N)`` array, where each column is one
+hypervector. Binding two ``(D, N)`` batches binds column ``i`` of the first with
+column ``i`` of the second, returning a ``(D, N)`` batch. ``unbind`` is
+analogous:
+
+.. code-block:: python
+
+   keys   = enc.generate(size=(10_000, 50))   # 50 keys as columns
+   values = enc.generate(size=(10_000, 50))   # 50 values as columns
+
+   bound     = enc.bind(keys, values)         # (10000, 50), column-wise
+   recovered = enc.unbind(bound, keys)         # (10000, 50)
+
+   print(enc.similarity(recovered, values))    # (50,) array, each ~= 1.0
+
+Element-wise binders (MAP multiply, BSC xor, FHRR angle addition) operate on
+each column independently.
+
 Building a multi-field record
 -------------------------------
 
@@ -66,7 +87,7 @@ Encodings that support unbinding
      - Notes
    * - MAP_C, MAP_I, MAP_I_Bits, MAP_B
      - Yes
-     - Element-wise multiply is self-inverse: ``bind(bind(a,b), b) ≈ a``
+     - Element-wise multiply is self-inverse: ``bind(bind(a,b), b) ~= a``
    * - HRR family, FHRR
      - Yes
      - Circular correlation inverts circular convolution

@@ -83,11 +83,11 @@ calling conventions:
 .. code-block:: python
 
    enc   = pyhdc.MAP_C(dimension=10_000, similarity_remap=remap_to_unit)
-   batch = enc.generate(size=10)
+   batch = enc.generate(size=(10_000, 10))   # (D, N): each column is a hypervector
    query = enc.generate()
 
-   # Convention 2: per-row pairs
-   sims = enc.similarity(batch, enc.generate(size=10))   # shape (10,), all in [0,1]
+   # Per-column pairs: result[i] = similarity(batch[:, i], other[:, i])
+   sims = enc.similarity(batch, enc.generate(size=(10_000, 10)))   # shape (10,), all in [0,1]
 
 Migration from v1.0.x
 ----------------------

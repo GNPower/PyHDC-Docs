@@ -9,7 +9,7 @@ Version and availability
 .. py:data:: __version__
    :type: str
 
-   Current version string, e.g. ``"1.1.0"``.
+   Current version string, e.g. ``"2.0.0"``.
 
 .. py:data:: __author__
    :type: str
@@ -39,8 +39,9 @@ encoding. They are provided for concise one-off calls.
    Generate one or more hypervectors using ``encoding``.
 
    :param encoding: An instantiated ``Encoding`` object.
-   :param size: ``None`` for a single vector, ``int`` for a 1-D batch,
-                or ``tuple`` for a multi-dimensional batch.
+   :param size: ``None`` or omitted for a single ``(D,)`` vector; an ``int`` for a
+                single vector of that dimension; a ``tuple`` ``(D, N)`` for a
+                dimension-first batch of ``N`` vectors (each column a hypervector).
    :param use_generator: Override the encoding's generator setting.
                          ``True`` forces the custom generator; ``False``
                          forces NumPy's default.
@@ -49,8 +50,8 @@ encoding. They are provided for concise one-off calls.
    .. code-block:: python
 
       enc = pyhdc.MAP_C(dimension=10_000)
-      hv  = pyhdc.generate(enc)
-      batch = pyhdc.generate(enc, size=100)
+      hv  = pyhdc.generate(enc)                          # (10000,)
+      batch = pyhdc.generate(enc, size=(10_000, 100))    # (10000, 100)
 
 .. py:function:: zeros(encoding, size=None)
 
@@ -86,6 +87,60 @@ encoding. They are provided for concise one-off calls.
    .. code-block:: python
 
       result = pyhdc.bind(key, value)
+
+.. py:function:: stack(hypervectors)
+
+   Combine hypervectors and/or batches into one dimension-first ``(D, N)``
+   batch by concatenating along the batch axis. A 1-D ``(D,)`` vector is treated
+   as a single column ``(D, 1)``. Backend-agnostic (NumPy or PyTorch).
+
+   :param hypervectors: A list of :class:`Hypervector` objects (vectors or
+                        ``(D, N)`` batches) sharing a backend.
+   :returns: A single :class:`Hypervector` of shape ``(D, total_columns)``.
+
+   .. code-block:: python
+
+      proto    = enc.generate()                    # (10000,)
+      codebook = enc.generate(size=(10_000, 50))   # (10000, 50)
+      combined = pyhdc.stack([proto, codebook])    # (10000, 51); proto is column 0
+
+Global backend and device defaults
+-----------------------------------
+
+Set a process-wide default backend/device; encodings created without an
+explicit ``backend`` / ``device`` argument inherit it.
+
+.. py:function:: prefer_torch(device=None)
+
+   Make PyTorch the default backend (optionally pinning ``device``). Raises
+   ``ImportError`` if PyTorch is not installed.
+
+.. py:function:: prefer_cuda(index=None)
+
+   Make PyTorch on CUDA the default (``"cuda"`` or ``"cuda:{index}"``). Raises if
+   PyTorch or CUDA is unavailable.
+
+.. py:function:: prefer_numpy()
+
+   Reset the default backend to NumPy.
+
+.. py:function:: prefer_cpu()
+
+   Pin the default device to CPU (relevant when the backend is PyTorch).
+
+.. py:function:: get_default_backend()
+
+   Return the current default backend, ``"numpy"`` or ``"torch"``.
+
+.. py:function:: get_default_device()
+
+   Return the current default device string, or ``None``.
+
+   .. code-block:: python
+
+      pyhdc.prefer_torch()                  # or pyhdc.prefer_cuda()
+      enc = pyhdc.MAP_C(dimension=10_000)   # inherits the torch backend
+      pyhdc.prefer_numpy()                  # reset to numpy
 
 Encoding classes
 -----------------

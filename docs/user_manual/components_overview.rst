@@ -65,15 +65,15 @@ Element generators control how individual hypervector values are drawn.
    * - Function
      - Description
    * - ``UniformBipolar``
-     - Uniform random from {-1, +1} (Bernoulli p=0.5 then ×2−1)
+     - Uniform random from {-1, +1} (Bernoulli p=0.5 then x2-1)
    * - ``UniformAngles``
      - Uniform random in [0, 2π]
    * - ``NormalReal``
      - Normal distribution N(0, 1)
    * - ``BernoulliBinary``
-     - Bernoulli(p=0.5) → {0, 1}
+     - Bernoulli(p=0.5) -> {0, 1}
    * - ``BernoulliBiploar``
-     - Bernoulli(p=0.5) → {-1, +1}  *(note: typo in source; "Biploar")*
+     - Bernoulli(p=0.5) -> {-1, +1}  *(note: typo in source; "Biploar")*
    * - ``BernoulliSparse``
      - k-sparse binary: exactly k elements are 1, rest are 0
    * - ``SparseSegmented``
@@ -103,7 +103,7 @@ The similarity module exports the four metric functions and the remap utility:
 * ``HammingDistance(*hvs)`` : normalised Hamming, output in [-1, 1]
 * ``Overlap(*hvs)`` : normalised overlap, output in [-1, 1]
 * ``AngleDistance(*hvs)`` : angle-based distance, output in [-1, 1]
-* ``remap_to_unit(sim)`` : maps [-1, 1] → [0, 1]
+* ``remap_to_unit(sim)`` : maps [-1, 1] -> [0, 1]
 
 Each function accepts one or two arguments in the same calling conventions
 as the ``Encoding.similarity()`` method.
@@ -117,5 +117,6 @@ considered private API and may change between releases:
 * ``_extract_data(hv)`` : extract the raw array from a Hypervector or pass
   through if already an array
 * ``_normalize_inputs(*hvs)`` : validate and normalise a sequence of inputs
-* ``_detect_batch_structure(*hvs)`` : determine whether inputs are 1-D or 2-D
-  and which batched calling convention applies
+* ``_detect_batch_structure(*hvs)`` : determine whether inputs are single
+  ``(D,)`` vectors or ``(D, N)`` batches and which column-wise calling
+  convention applies

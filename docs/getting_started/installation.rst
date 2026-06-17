@@ -20,7 +20,7 @@ Verify the installation:
 .. code-block:: python
 
    import pyhdc
-   print(pyhdc.__version__)   # e.g. 1.1.0
+   print(pyhdc.__version__)   # e.g. 2.0.0
 
 Install with PyTorch (GPU support)
 ------------------------------------

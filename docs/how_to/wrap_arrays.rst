@@ -36,14 +36,25 @@ Load a saved codebook from disk
 .. code-block:: python
 
    # Load a codebook that was saved as a NumPy .npy file
-   # Shape: (num_items, dimension)
-   data = np.load('codebook.npy')   # shape (100, 10000)
+   # Shape: (dimension, num_items) -- each column is one hypervector
+   data = np.load('codebook.npy')   # shape (10000, 100)
 
    enc      = pyhdc.MAP_C(dimension=10_000)
-   codebook = [enc.from_array(data[i]) for i in range(len(data))]
+   codebook = enc.from_array(data)   # one (10000, 100) batch hypervector
 
-   query   = enc.generate()
-   best_idx = max(range(len(codebook)), key=lambda i: query.similarity(codebook[i]))
+   query    = enc.generate()
+   # similarity of query against each of the 100 columns -> (100,) array
+   scores   = enc.similarity(query, codebook)
+   best_idx = int(scores.argmax())
+
+Use :meth:`~pyhdc.Hypervector.select` to pick columns from the batch by index
+along the batch axis, and :func:`~pyhdc.stack` to concatenate hypervectors into
+one ``(D, N)`` batch:
+
+.. code-block:: python
+
+   subset = codebook.select([0, 2, 4])   # (10000, 3) batch
+   extended = pyhdc.stack([query, codebook])   # (10000, 101), query as column 0
 
 Wrap a PyTorch tensor
 ----------------------

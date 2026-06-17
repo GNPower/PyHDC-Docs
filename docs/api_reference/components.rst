@@ -23,7 +23,8 @@ pyhdc.components.similarity
    Cosine similarity between two vectors or batches.
 
    :returns: ``float``, ``ndarray``, or ``Tensor`` in [-1, 1].
-             Supports three :ref:`batched calling conventions <similarity-batched>`.
+             Operates column-wise over axis 0 of a ``(D, N)`` batch. See the
+             :ref:`batched calling conventions <similarity-batched>`.
 
 .. autofunction:: HammingDistance
 

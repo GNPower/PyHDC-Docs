@@ -17,7 +17,7 @@ All encoding classes share this constructor signature:
 
    Encoding(
        dimension=10_000,
-       backend="numpy",
+       backend=None,
        device=None,
        dtype=None,
        mask=None,
@@ -38,10 +38,11 @@ All encoding classes share this constructor signature:
      - ``10_000``
      - Number of elements per hypervector.
    * - ``backend``
-     - ``str``
-     - ``"numpy"``
-     - ``"numpy"`` or ``"torch"``. Determines the array type of all
-       generated hypervectors.
+     - ``str`` or ``None``
+     - ``None``
+     - ``"numpy"`` or ``"torch"``. ``None`` inherits the global default
+       (see :func:`~pyhdc.prefer_torch` / :func:`~pyhdc.prefer_numpy`), which is
+       ``"numpy"`` unless changed.
    * - ``device``
      - ``str`` or ``None``
      - ``None``
@@ -97,8 +98,9 @@ Methods
 
    Generate one or more hypervectors.
 
-   :param size: ``None`` → single vector; ``int`` → 1-D batch of that size;
-                ``tuple`` → multi-dimensional batch.
+   :param size: ``None`` -> single ``(D,)`` vector; ``int`` -> a single vector of
+                that dimension; ``tuple`` ``(D, N)`` -> a dimension-first batch of
+                ``N`` vectors (each column a hypervector).
    :param backend: Override the encoding's default backend for this call.
    :param device: Override the encoding's default device for this call.
    :param use_generator: ``True`` forces the custom generator; ``False``
@@ -129,7 +131,9 @@ Methods
    :no-index:
 
    Compute similarity. Accepts ``Hypervector`` objects, raw arrays, or lists.
-   See :ref:`batched calling conventions <similarity-batched>`.
+   If ``hvB`` is omitted, ``hvA`` must be a ``(D, N)`` batch and column 0 is
+   compared against each remaining column. See
+   :ref:`batched calling conventions <similarity-batched>`.
 
    :returns: ``float``, ``ndarray``, ``Tensor``, or ``list`` depending on inputs.
 

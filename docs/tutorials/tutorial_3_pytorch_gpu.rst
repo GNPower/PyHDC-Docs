@@ -107,14 +107,15 @@ vectorised across the entire batch.
 
    enc = make_enc()
 
-   # Generate 10,000 hypervectors of dimension 10,000 in one call
-   batch = enc.generate(size=10_000)
-   print(batch.shape)    # (10000, 10000)
+   # Generate 10,000 hypervectors of dimension 10,000 in one call.
+   # Hypervectors are dimension-first: each column is one hypervector.
+   batch = enc.generate(size=(10_000, 10_000))
+   print(batch.shape)    # (10000, 10000)  # (D, N)
    print(batch.backend)  # torch
    print(batch.device)   # cuda:0  (if CUDA available)
 
-   # Index to get a single hypervector
-   hv0 = batch[0]
+   # Index a column to get a single hypervector
+   hv0 = batch[:, 0]
    print(hv0.shape)      # (10000,)
 
 ----
@@ -122,10 +123,11 @@ vectorised across the entire batch.
 Batched similarity: three calling conventions
 ----------------------------------------------
 
-As of v1.1.0, the ``Encoding.similarity()`` and ``Hypervector.similarity()``
-methods support three calling conventions:
+The ``Encoding.similarity()`` and ``Hypervector.similarity()`` methods
+support three calling conventions. Hypervectors are dimension-first, so a
+batch is ``(D, N)`` and comparisons run column-wise over axis 0.
 
-**1. Two 1-D hypervectors → scalar**
+**1. Two 1-D hypervectors -> scalar**
 
 .. code-block:: python
 
@@ -134,34 +136,34 @@ methods support three calling conventions:
 
    sim = a.similarity(b)   # float
 
-**2. Two 2-D batches → 1-D array (per-row pairs)**
+**2. Two 2-D batches -> 1-D array (per-column pairs)**
 
 .. code-block:: python
 
-   batch_a = enc.generate(size=100)   # shape (100, 10000)
-   batch_b = enc.generate(size=100)   # shape (100, 10000)
+   batch_a = enc.generate(size=(10_000, 100))   # shape (10000, 100)  # (D, N)
+   batch_b = enc.generate(size=(10_000, 100))   # shape (10000, 100)  # (D, N)
 
    sims = enc.similarity(batch_a, batch_b)   # shape (100,)
-   # sims[i] = similarity(batch_a[i], batch_b[i])
+   # sims[i] = similarity(batch_a[:, i], batch_b[:, i])
 
-**3. Single 2-D batch → 1-D array (first row vs. rest)**
+**3. Single 2-D batch -> 1-D array (first column vs. rest)**
 
 .. code-block:: python
 
-   batch = enc.generate(size=101)   # shape (101, 10000)
+   batch = enc.generate(size=(10_000, 101))   # shape (10000, 101)  # (D, N)
 
    sims = enc.similarity(batch)     # shape (100,)
-   # sims[i] = similarity(batch[0], batch[i+1])
+   # sims[i] = similarity(batch[:, 0], batch[:, i+1])
 
 Convention 3 is useful for nearest-neighbour search: put the query in
-position 0 and the codebook in rows 1+.
+column 0 and the codebook in columns 1+.
 
 .. code-block:: python
 
-   query = enc.generate()           # shape (10000,)
-   codebook = enc.generate(size=50) # shape (50, 10000)
+   query = enc.generate()                       # shape (10000,)
+   codebook = enc.generate(size=(10_000, 50))   # shape (10000, 50)  # (D, N)
 
-   batch = torch.vstack([query, codebook])   # shape (51, 10000)
+   batch = pyhdc.stack([query, codebook])    # shape (10000, 51): query is column 0
    sims = enc.similarity(batch)              # shape (50,)
    best_idx = sims.argmax().item()           # index of closest match in codebook
 
@@ -236,13 +238,13 @@ simple timing comparison:
 
    # NumPy baseline
    t0 = time.perf_counter()
-   batch_np = enc_np.generate(size=N)
+   batch_np = enc_np.generate(size=(D, N))
    t1 = time.perf_counter()
-   print(f"NumPy  generate {N}x{D}: {t1-t0:.3f}s")
+   print(f"NumPy  generate {D}x{N}: {t1-t0:.3f}s")
 
    # PyTorch (CPU or GPU)
    t0 = time.perf_counter()
-   batch_gpu = enc_gpu.generate(size=N)
+   batch_gpu = enc_gpu.generate(size=(D, N))
    if torch.cuda.is_available():
        torch.cuda.synchronize()
    t1 = time.perf_counter()

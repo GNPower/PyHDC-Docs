@@ -43,7 +43,7 @@ Properties
      - ``"numpy"`` or ``"torch"``
    * - ``.shape``
      - ``tuple``
-     - Shape of the underlying array (e.g., ``(10000,)`` or ``(100, 10000)``)
+     - Shape of the underlying array (e.g., ``(10000,)`` or ``(10000, 100)``)
    * - ``.ndim``
      - ``int``
      - Number of dimensions (1 for a single HV, 2 for a batch)
@@ -57,16 +57,34 @@ Properties
 Similarity
 ^^^^^^^^^^
 
-.. py:method:: Hypervector.similarity(other)
+.. py:method:: Hypervector.similarity(other=None)
    :no-index:
 
-   Compute similarity to another hypervector (or batch).
+   Compute similarity to another hypervector (or batch), or within a single
+   batch when ``other`` is omitted.
 
-   Delegates to the encoding's similarity function. Returns a value in [-1, 1].
+   Delegates to the encoding's similarity function. Returns values in [-1, 1].
 
-   :param other: A :class:`Hypervector` of the same encoding and backend.
+   :param other: A :class:`Hypervector` of the same encoding and backend. If
+                 omitted, ``self`` must be a ``(D, N)`` batch and the similarity
+                 of column 0 against each remaining column is returned.
    :returns: ``float``, ``ndarray``, or ``Tensor`` depending on input shapes.
              See :ref:`batched calling conventions <similarity-batched>`.
+
+Batch selection
+^^^^^^^^^^^^^^^
+
+.. py:method:: Hypervector.select(indices)
+   :no-index:
+
+   Select hypervectors (columns) from a ``(D, N)`` batch by index along the
+   batch axis. Returns a ``(D, len(indices))`` batch. Works on NumPy and PyTorch
+   (list or array indices are accepted).
+
+   .. code-block:: python
+
+      codebook = enc.generate(size=(10_000, 100))   # (10000, 100)
+      subset   = codebook.select([0, 2, 4])         # (10000, 3)
 
 Bundle and bind
 ^^^^^^^^^^^^^^^
@@ -171,14 +189,15 @@ Special methods
 
    .. code-block:: python
 
-      batch = enc.generate(size=100)
-      hv0   = batch[0]          # shape (10000,)
-      first5 = batch[:5]        # shape (5, 10000)
+      batch = enc.generate(size=(10_000, 100))   # (10000, 100)
+      hv0   = batch[:, 0]        # shape (10000,): first hypervector (column 0)
+      first5 = batch[:, :5]      # shape (10000, 5): first five hypervectors
 
 .. py:method:: Hypervector.__len__()
    :no-index:
 
-   Return the number of hypervectors in a batch (``shape[0]``).
+   Return ``shape[0]``, which is the hypervector dimension ``D`` (axis 0) -- not
+   the batch count, since batches are dimension-first ``(D, N)``.
 
 .. py:method:: Hypervector.__repr__()
    :no-index:

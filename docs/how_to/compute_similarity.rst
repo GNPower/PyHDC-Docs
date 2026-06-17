@@ -2,7 +2,7 @@ How to Compute Similarity
 ==========================
 
 Similarity measures how related two hypervectors are. PyHDC returns values
-in **[-1, 1]** (1 = identical, 0 = unrelated, −1 = maximally dissimilar).
+in **[-1, 1]** (1 = identical, 0 = unrelated, -1 = maximally dissimilar).
 
 Basic usage
 -----------
@@ -27,13 +27,15 @@ Basic usage
 
 .. _similarity-batched:
 
-Batched similarity: three calling conventions
-----------------------------------------------
+Batched similarity: calling conventions
+---------------------------------------
 
-As of v1.1.0, both ``Hypervector.similarity()`` and ``Encoding.similarity()``
-support three input shapes:
+Hypervectors are dimension-first: a single vector has shape ``(D,)`` and a batch
+of ``N`` vectors has shape ``(D, N)`` (each **column** is a hypervector). Both
+``Hypervector.similarity()`` and ``Encoding.similarity()`` reduce over axis 0
+(the dimension) and support these shapes:
 
-**Convention 1; two 1-D vectors → scalar**
+**Convention 1; two 1-D vectors -> scalar**
 
 .. code-block:: python
 
@@ -41,29 +43,39 @@ support three input shapes:
    b = enc.generate()   # shape (10000,)
    sim = enc.similarity(a, b)   # float
 
-**Convention 2; two 2-D batches → 1-D array (per-row pairs)**
+**Convention 2; two (D, N) batches -> 1-D array (per-column pairs)**
 
-Row ``i`` of the result is ``similarity(a[i], b[i])``:
+Element ``i`` of the result is ``similarity(A[:, i], B[:, i])``:
 
 .. code-block:: python
 
-   batch_a = enc.generate(size=50)   # shape (50, 10000)
-   batch_b = enc.generate(size=50)   # shape (50, 10000)
+   batch_a = enc.generate(size=(10_000, 50))   # shape (10000, 50)
+   batch_b = enc.generate(size=(10_000, 50))   # shape (10000, 50)
    sims    = enc.similarity(batch_a, batch_b)   # shape (50,)
 
-**Convention 3; single 2-D batch → 1-D array (first row vs. rest)**
+**Convention 3; single (D, N) batch -> 1-D array (column 0 vs the rest)**
 
-Row 0 is the query; rows 1+ are the candidates:
+Column 0 is the query; columns 1+ are the candidates:
 
 .. code-block:: python
 
-   query_plus_codebook = enc.generate(size=101)   # shape (101, 10000)
-   sims = enc.similarity(query_plus_codebook)      # shape (100,)
-   # sims[i] = similarity(query_plus_codebook[0], query_plus_codebook[i+1])
+   query_plus_codebook = enc.generate(size=(10_000, 101))   # shape (10000, 101)
+   sims = enc.similarity(query_plus_codebook)                # shape (100,)
+   # sims[i] = similarity(column 0, column i+1)
+
+**Convention 4; one vector vs a batch -> 1-D array (broadcast)**
+
+A ``(D,)`` vector compared against every column of a ``(D, N)`` batch:
+
+.. code-block:: python
+
+   query    = enc.generate()                    # shape (10000,)
+   codebook = enc.generate(size=(10_000, 100))   # shape (10000, 100)
+   sims     = enc.similarity(query, codebook)    # shape (100,)
 
 **Batched list form at the encoding level**
 
-You can also pass lists of ``Hypervector`` objects:
+You can also pass two equal-length lists of ``Hypervector`` objects:
 
 .. code-block:: python
 
@@ -125,7 +137,7 @@ Or apply ``remap_to_unit`` manually:
 Nearest-neighbour lookup
 -------------------------
 
-Find the closest match to a query in a codebook:
+Find the closest match to a query in a small codebook:
 
 .. code-block:: python
 
@@ -135,19 +147,24 @@ Find the closest match to a query in a codebook:
    best = max(codebook, key=lambda k: query.similarity(codebook[k]))
    print(best)   # red
 
-For large codebooks (thousands of items), use batched convention 3 for speed:
+For large codebooks (thousands of items), keep the codebook as one ``(D, N)``
+batch and compare in a single vectorized call:
 
 .. code-block:: python
 
    import numpy as np
 
-   names = list(codebook)
-   hvs   = [codebook[n] for n in names]
+   enc      = pyhdc.MAP_C(dimension=10_000)
+   codebook = enc.generate(size=(10_000, 5_000))   # (D, N): 5000 items as columns
+   query    = enc.generate()                        # (D,)
 
-   # Stack query + codebook into one batch
-   enc_torch = pyhdc.MAP_C(dimension=10_000, backend="torch")
-   stacked   = enc_torch.generate(size=len(hvs) + 1)
-   # (in practice: assign query to stacked[0] and codebook to stacked[1:])
-   sims      = enc_torch.similarity(stacked)   # shape (len(hvs),)
-   best_idx  = int(np.argmax(sims))
-   print(names[best_idx])
+   sims     = enc.similarity(query, codebook)        # shape (5000,) broadcast
+   best_idx = int(np.argmax(sims))
+   print(best_idx)
+
+   # Or stack the query as column 0 and use convention 3:
+   stacked  = pyhdc.stack([query, codebook])          # (D, 5001)
+   sims     = enc.similarity(stacked)                 # shape (5000,)
+
+   # Pull specific candidates back out of the batch with select:
+   top3     = codebook.select(np.argsort(sims)[-3:])  # (D, 3)

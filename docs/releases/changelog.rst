@@ -10,6 +10,61 @@ The source is `CHANGELOG.md on GitHub
 
 ----
 
+v2.0.0: 2026-06-12
+---------------------
+
+Added
+~~~~~
+
+* Dimension-first ``(D, N)`` batched hypervectors. ``enc.generate(size=(D, N))``
+  returns one :class:`~pyhdc.Hypervector` wrapping a ``(D, N)`` array whose columns
+  are hypervectors. :meth:`~pyhdc.Encoding.bundle` collapses a ``(D, N)`` batch to a
+  single ``(D,)`` prototype; :meth:`~pyhdc.Encoding.bind` / ``unbind`` operate per
+  column.
+* :meth:`~pyhdc.Hypervector.select`: select hypervectors (columns) from a ``(D, N)``
+  batch by index, on both the NumPy and PyTorch backends.
+* :func:`~pyhdc.stack`: backend-agnostic combine of hypervectors/batches into one
+  ``(D, N)`` batch along the batch axis (a ``(D,)`` vector becomes a column).
+* Global backend/device defaults: :func:`~pyhdc.prefer_torch`,
+  :func:`~pyhdc.prefer_cuda`, :func:`~pyhdc.prefer_numpy`, :func:`~pyhdc.prefer_cpu`,
+  :func:`~pyhdc.get_default_backend`, :func:`~pyhdc.get_default_device`. Encodings
+  created without an explicit ``backend`` / ``device`` inherit these.
+* Multi-mode similarity: a single ``(D, N)`` batch returns column 0 against each
+  remaining column; two ``(D, N)`` batches return per-column pairs; a ``(D,)`` vector
+  against a ``(D, N)`` batch broadcasts.
+* :class:`~pyhdc.BSDC_THIN` is now exported at the top level.
+
+Changed (breaking)
+~~~~~~~~~~~~~~~~~~~
+
+* Hypervector batches are now **dimension-first** ``(D, N)`` (each column is a
+  hypervector), not batch-first ``(N, D)``. ``enc.generate(size=N)`` with an integer
+  now returns a single ``N``-dimensional vector; use ``enc.generate(size=(D, N))``
+  for a batch of ``N`` vectors.
+* Batched :meth:`~pyhdc.Encoding.similarity` is column-wise over ``(D, N)`` instead
+  of per-row over ``(N, D)``: ``similarity(A, B)`` returns per-column pairs, and
+  ``similarity(batch)`` returns column 0 vs each remaining column.
+
+**Migration guide**:
+
+.. code-block:: python
+
+   # A batch of N vectors was (N, D) in 1.1.0; make or transpose it to (D, N).
+   batch = enc.generate(size=(10_000, 50))   # was enc.generate(size=50)
+
+   # Batched similarity now indexes columns, not rows.
+   sims   = enc.similarity(batch_a, batch_b)   # sims[i] = sim(batch_a[:, i], batch_b[:, i])
+   member = batch[:, i]                         # was batch[i]
+
+Fixed
+~~~~~
+
+* Batched generation is order-reproducible: ``generate(size=(D, N))`` yields the same
+  vectors as ``N`` successive ``generate()`` calls under a fixed seed, and works for
+  every generator (a 2-D ``size`` previously mis-ordered the columns or failed).
+
+----
+
 v1.1.0: 2026-05-24
 ---------------------
 

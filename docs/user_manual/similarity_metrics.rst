@@ -4,7 +4,7 @@ Similarity Metrics
 Similarity is the primary query mechanism in HDC: given a noisy or
 transformed hypervector, similarity to each item in a codebook identifies the
 nearest match. All metrics in PyHDC return values in **[-1, 1]** (1 =
-identical, 0 = orthogonal, −1 = maximally dissimilar).
+identical, 0 = orthogonal, -1 = maximally dissimilar).
 
 All similarity functions are in ``pyhdc.components.similarity``.
 
@@ -41,9 +41,9 @@ Output range: [-1, 1]
 
 The formula maps:
 
-* 0 bit flips (identical vectors) → 1.0
-* D/2 bit flips (random/orthogonal) → 0.0
-* D bit flips (all-different) → -1.0
+* 0 bit flips (identical vectors) -> 1.0
+* D/2 bit flips (random/orthogonal) -> 0.0
+* D bit flips (all-different) -> -1.0
 
 This is consistent with the [-1, 1] convention used by all other metrics.
 
@@ -108,7 +108,7 @@ A utility function that maps any [-1, 1] similarity value to [0, 1]:
 
    \text{remap\_to\_unit}(s) = \frac{s + 1}{2}
 
-This maps: −1 → 0, 0 → 0.5 (orthogonal), +1 → 1.
+This maps: -1 -> 0, 0 -> 0.5 (orthogonal), +1 -> 1.
 
 It works on scalars, NumPy arrays, and PyTorch tensors. Use it as the
 ``similarity_remap=`` argument on any encoding to apply it automatically.
@@ -116,7 +116,9 @@ It works on scalars, NumPy arrays, and PyTorch tensors. Use it as the
 Batched calling conventions
 -----------------------------
 
-All similarity functions support three input modes since v1.1.0:
+Batches are dimension-first: a batch of N hypervectors has shape ``(D, N)``,
+where each column ``batch[:, i]`` is one hypervector. Similarity operates
+column-wise over axis 0. The supported input modes:
 
 .. list-table::
    :header-rows: 1
@@ -128,12 +130,18 @@ All similarity functions support three input modes since v1.1.0:
    * - ``(D,)`` and ``(D,)``
      - scalar
      - Single pair
-   * - ``(N, D)`` and ``(N, D)``
+   * - ``(D, N)`` and ``(D, N)``
      - ``(N,)``
-     - Per-row pairs: ``result[i] = sim(a[i], b[i])``
-   * - ``(N+1, D)`` (single arg)
+     - Per-column pairs: ``result[i] = sim(A[:, i], B[:, i])``
+   * - ``(D,)`` and ``(D, N)``
      - ``(N,)``
-     - Row 0 vs. rows 1…N: ``result[i] = sim(batch[0], batch[i+1])``
+     - One vector vs. each column: ``result[i] = sim(v, B[:, i])``
+   * - ``(D, N)`` (single arg)
+     - ``(N-1,)``
+     - Column 0 vs. columns 1...N-1: ``result[i] = sim(batch[:, 0], batch[:, i+1])``
+   * - ``[a, b]`` and ``[c, d]`` (equal-length lists)
+     - list of scalars
+     - Pairwise: ``[sim(a, c), sim(b, d)]``
 
 Choosing the right metric
 --------------------------
