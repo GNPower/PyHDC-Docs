@@ -3,7 +3,7 @@ Dual Backend Architecture
 
 PyHDC supports two backends for its array operations: **NumPy** (the default)
 and **PyTorch**. Every encoding, operation, and hypervector works with either
-backend; the API surface is identical.
+backend and the API surface is identical.
 
 Design rationale
 -----------------
@@ -110,7 +110,7 @@ Memory layout and data movement
 PyHDC generators always produce CPU data first (they are Python-level
 sequences that get converted to arrays). When you create a GPU encoding, the
 generated floats are first assembled into a NumPy array and then transferred
-to the GPU. This is transparent but means generation is not purely on-GPU.
+to the GPU. This means generation is not purely on-GPU.
 
 The data-movement methods on ``Hypervector`` make transfers explicit:
 

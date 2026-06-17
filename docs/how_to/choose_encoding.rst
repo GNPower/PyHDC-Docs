@@ -159,38 +159,6 @@ Full comparison table
      - Yes
      - Best sparse default (v1.1.0+)
 
-Guidance by family
-------------------
-
-**MAP_C** is the default for anything not listed below. It uses float32, supports
-full unbinding, and is the encoding most tutorials and reference papers use.
-
-**MAP_B** is the binary version of MAP_C, with 0/1 elements and int8 storage. It is a
-
-**HRR** is worth choosing when you want normalised bundling
-(``ElementAdditionNormalized``) or when you are replicating Plate (1995) or
-other HRR literature that requires circular convolution binding specifically.
-
-**BSC** is the right choice when 1-bit elements matter: memory-constrained
-hardware, neuromorphic simulation, or any case where exact (not approximate)
-unbinding via XOR is required.
-
-**BSDC_THIN** suits applications where sparsity is a hard requirement, such as
-neuromorphic or energy-efficient hardware. It applies random thinning after each
-OR bundle step, keeping density stable across arbitrarily many bundle operations.
-Use BSDC_S or BSDC_SEG instead if you need shift-based positional encoding but
-can bound the number of bundle steps. Use BSDC_CDT only when replicating
-literature that calls for context-dependent thinning and when you do not need
-unbinding, since CDT binding is not invertible.
-
-**FHRR** is for angular or periodic feature spaces (compass bearings, phase
-angles). It stores angles as float32 and uses modular addition for binding,
-giving it complex-valued HRR semantics at real-valued storage cost.
-
-**VTB and MBAT** are primarily for replicating matrix-binding VSA papers.
-MBAT requires preserving ``get_metadata()`` after every bind call to perform
-unbinding later.
-
 Side-by-side example
 ---------------------
 

@@ -41,7 +41,7 @@ similarity call on that encoding is automatically remapped:
    b   = enc.generate()
 
    print(a.similarity(a))   # 1.0
-   print(a.similarity(b))   # ≈ 0.5  (unrelated; 0.5 in [0,1] means orthogonal)
+   print(a.similarity(b))   # ~= 0.5  (unrelated; 0.5 in [0,1] means orthogonal)
 
 Apply it manually
 ------------------

@@ -70,7 +70,7 @@ Multiplicative-Additive-Permutation encodings use **dense bipolar** or
 **MAP_C**; Continuous MAP
    * Elements: float in [-1, 1], default dtype ``float32``
    * Binding: element-wise multiplication (self-inverse)
-   * Bundling: element-wise addition with threshold/cut and band randomisation
+   * Bundling: element-wise addition with threshold/cut
    * Similarity: cosine
    * Unbind: yes
    * Best for: general-purpose, well-studied, good continuous capacity
@@ -102,7 +102,7 @@ circular convolution binding.
    * Unbinding: circular correlation
    * Bundling: element-wise addition then L2 normalisation
    * Similarity: cosine
-   * Best for: theoretical cleanliness; the canonical VSA for research papers
+   * Best for: large capacity requirements
 
 **HRR_NoNorm**
    * Like HRR but bundling does not normalise the result
@@ -131,8 +131,6 @@ algebraic properties at the cost of additional storage.
    * Binding: constructs a matrix from the key vector and applies it to the value
    * Unbinding: transpose of the transformation matrix
    * Bundling: normalised addition (same as HRR)
-   * Best for: replicating VTB literature results; theoretically motivated
-     matrix binding
 
 **MBAT**; Matrix Binding of Additive Terms
    * Elements: normal float, dtype ``float32``
@@ -151,7 +149,7 @@ Binary family
    * Bundling: majority-vote threshold (element is 1 if > half the inputs are 1)
    * Similarity: Hamming distance (remapped to [-1, 1])
    * Unbind: yes (exact, not approximate)
-   * Best for: hardware efficiency; situations where exact unbinding is needed
+   * Best for: hardware efficiency and situations where exact unbinding is needed
 
 Sparse Binary (BSDC) family
 -----------------------------
@@ -159,7 +157,7 @@ Sparse Binary (BSDC) family
 All BSDC variants share:
 
 * Elements: sparse binary {0, 1}, dtype ``int8``
-* Initial density ≈ 1–5% (controlled by ``BernoulliSparse`` element generator)
+* Initial density :math:`\approx` 1-5% (controlled by ``BernoulliSparse`` element generator)
 * Bundling: bitwise OR (with or without thinning)
 * Similarity: Overlap (remapped to [-1, 1])
 
@@ -167,13 +165,11 @@ All BSDC variants share:
    * Binding: Additive context-dependent thinning
    * Unbind: **not supported** (thinning is not invertible)
    * Bundling: OR only (no thinning); density grows with each bundle step
-   * Best for: papers that specifically use CDT binding
 
 **BSDC_S**; Sparse with Shifting
    * Binding: circular shift by one position per bind step
    * Unbind: yes (inverse shift)
    * Bundling: OR only; density grows
-   * Best for: positional / sequential encodings
 
 **BSDC_SEG**; Sparse Segmented
    * Like BSDC_S but shift is applied per-segment of the vector
@@ -183,5 +179,4 @@ All BSDC variants share:
    * Binding: circular shift (same as BSDC_S)
    * Unbind: yes
    * Bundling: OR followed by random thinning to maintain target density
-   * Best for: applications requiring many bundle steps without density saturation;
-     the recommended sparse default
+   * Best for: applications requiring many bundle steps without density saturation

@@ -16,10 +16,6 @@ What makes a good feature request
 Current development focus
 --------------------------
 
-* **Recovery module**: the ``pyhdc.recovery`` module contains implementations
-  of sequence recovery algorithms (Berlekamp-Massey, LCG recovery, etc.) but
-  is not yet part of the public API. It will be documented and stabilised in
-  a future release.
 * **Additional encodings**: new encoding schemes from recent VSA literature
   are considered on a case-by-case basis; please link the paper in your request.
 * **Performance optimisations**: contributions that improve batched operation

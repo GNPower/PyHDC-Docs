@@ -41,11 +41,11 @@ Convert an existing hypervector
 
    hv_np  = pyhdc.MAP_C(dimension=10_000).generate()
 
-   hv_cpu = hv_np.to_torch()          # NumPy → PyTorch CPU
-   hv_gpu = hv_cpu.cuda()             # CPU → GPU (cuda:0)
-   hv_g1  = hv_gpu.to("cuda:1")       # GPU 0 → GPU 1
-   hv_cpu2 = hv_gpu.cpu()             # GPU → CPU
-   hv_np2  = hv_cpu2.to_numpy()       # PyTorch → NumPy
+   hv_cpu = hv_np.to_torch()          # NumPy -> PyTorch CPU
+   hv_gpu = hv_cpu.cuda()             # CPU -> GPU (cuda:0)
+   hv_g1  = hv_gpu.to("cuda:1")       # GPU 0 -> GPU 1
+   hv_cpu2 = hv_gpu.cpu()             # GPU -> CPU
+   hv_np2  = hv_cpu2.to_numpy()       # PyTorch -> NumPy
 
 Equivalently, ``.to(device)`` accepts any device string:
 

@@ -18,7 +18,7 @@ Single pair bind and unbind
    bound     = key.bind(value)
    recovered = bound.unbind(key)
 
-   print(recovered.similarity(value))   # ≈ 1.0
+   print(recovered.similarity(value))   # ~= 1.0
 
 The recovered vector is not identical to ``value``; it carries noise from
 the finite dimension. Use it as a query against a codebook to identify the
@@ -103,7 +103,7 @@ The matrix is returned in the result's metadata dictionary:
 
    # Unbind using the stored matrices
    recovered = bound.unbind(key)
-   print(recovered.similarity(value))   # ≈ 1.0
+   print(recovered.similarity(value))   # ~= 1.0
 
 When unbind is not available
 ------------------------------

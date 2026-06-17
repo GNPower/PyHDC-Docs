@@ -18,8 +18,7 @@ Simple element-wise sum with no normalisation:
    (\bigoplus_k \mathbf{v}_k)_i = \sum_k v_{k,i}
 
 The result's magnitude grows with the number of bundled vectors. Similarity
-decreases slightly with each additional vector because the result moves away
-from the unit sphere.
+decreases slightly with each additional vector.
 
 ElementAdditionCut
 -------------------
@@ -31,9 +30,6 @@ Element-wise sum followed by clipping each element back into the valid range:
 .. math::
 
    (\bigoplus \mathbf{v})_i = \text{clip}\!\left(\sum_k v_{k,i},\; -1,\; 1\right)
-
-The ``random_choice_range`` parameter controls randomised tie-breaking at the
-clip boundary: useful for reducing systematic bias in the result.
 
 ElementAdditionBits
 --------------------
@@ -133,7 +129,7 @@ After 100 bundle steps from :math:`\rho_0 = 0.01`, density reaches
 :math:`1 - (0.99)^{100} \approx 0.63`. This makes all vectors indistinguishable.
 Use :class:`~pyhdc.BSDC_THIN` to avoid this problem.
 
-DisjunctionThinned (v1.1.0)
+DisjunctionThinned
 -----------------------------
 
 **Used by**: BSDC_THIN

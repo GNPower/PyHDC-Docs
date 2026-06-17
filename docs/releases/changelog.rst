@@ -5,7 +5,7 @@ All notable changes to PyHDC are documented here. The project follows
 `Semantic Versioning <https://semver.org/>`_ and
 `Keep a Changelog <https://keepachangelog.com/>`_ conventions.
 
-The canonical source is `CHANGELOG.md on GitHub
+The source is `CHANGELOG.md on GitHub
 <https://github.com/GNPower/PyHDC/blob/main/CHANGELOG.md>`_.
 
 ----

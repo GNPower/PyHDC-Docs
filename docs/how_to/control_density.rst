@@ -16,7 +16,7 @@ Density is simply the mean of a binary hypervector's data array:
 
    enc = pyhdc.BSDC_S(dimension=10_000)
    hv  = enc.generate()
-   print(f"density = {hv.data.mean():.4f}")   # ≈ 0.01
+   print(f"density = {hv.data.mean():.4f}")   # ~= 0.01
 
 The density growth problem
 ---------------------------

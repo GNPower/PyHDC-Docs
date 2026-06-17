@@ -19,7 +19,7 @@ CosineSimilarity
 
 Output range: [-1, 1]
 
-Cosine similarity is the dot product of unit vectors; it measures the angle
+Cosine similarity is the dot product of unit vectors. It measures the angle
 between two vectors, independent of their magnitudes. This makes it
 appropriate for both normalised (HRR) and unnormalised (MAP) vectors.
 
@@ -37,7 +37,7 @@ Normalised and remapped Hamming distance:
 
    \text{hamming}(\mathbf{a}, \mathbf{b}) = 1 - 2 \cdot \frac{\text{popcount}(\mathbf{a} \oplus \mathbf{b})}{D}
 
-Output range: [-1, 1] (since v1.1.0; was [0, 1] in v1.0.x)
+Output range: [-1, 1]
 
 The formula maps:
 
@@ -45,7 +45,7 @@ The formula maps:
 * D/2 bit flips (random/orthogonal) → 0.0
 * D bit flips (all-different) → -1.0
 
-This is consistent with the [−1, 1] convention used by all other metrics.
+This is consistent with the [-1, 1] convention used by all other metrics.
 
 .. note::
 
@@ -70,7 +70,7 @@ Normalised set intersection, remapped to [-1, 1]:
 
    \text{overlap}(\mathbf{a}, \mathbf{b}) = 2 \cdot \text{overlap\_raw} - 1
 
-Output range: [-1, 1] (since v1.1.0; was [0, 1] in v1.0.x)
+Output range: [-1, 1]
 
 For sparse binary vectors, the dot product counts the number of positions
 where both vectors have a 1. Dividing by the smaller :math:`\ell_1` norm
@@ -138,7 +138,7 @@ All similarity functions support three input modes since v1.1.0:
 Choosing the right metric
 --------------------------
 
-The encoding automatically selects the appropriate metric; you do not need
+The encoding automatically selects the appropriate metric, you do not need
 to call these functions directly. The mapping is:
 
 .. list-table::

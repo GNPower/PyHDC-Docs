@@ -113,7 +113,7 @@ If your downstream code expects [0, 1] (e.g., scikit-learn metrics), use
    enc = pyhdc.BSC(dimension=10_000, similarity_remap=remap_to_unit)
    a   = enc.generate()
    print(a.similarity(a))   # 1.0
-   print(a.similarity(enc.generate()))   # ≈ 0.5
+   print(a.similarity(enc.generate()))   # ~= 0.5
 
 Or apply ``remap_to_unit`` manually:
 

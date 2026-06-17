@@ -4,7 +4,7 @@ Contributing to PyHDC
 Thank you for your interest in contributing! This page explains how to set up
 a development environment, run the checks, and submit a pull request.
 
-The canonical contributor guide is `CONTRIBUTING.md on GitHub
+The contributor guide is `CONTRIBUTING.md on GitHub
 <https://github.com/GNPower/PyHDC/blob/main/CONTRIBUTING.md>`_.
 
 Development setup
@@ -73,7 +73,6 @@ Project layout
      encodings/           All 15 encoding classes
      generation/          7 random number generator families
      components/          Similarity, binding, bundling, elements, thinning
-     recovery/            Recovery algorithms (not yet public)
      types.py             Type aliases
      exceptions.py        Exception hierarchy
    tests/

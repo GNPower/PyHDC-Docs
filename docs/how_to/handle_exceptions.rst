@@ -13,10 +13,7 @@ Exception hierarchy
    └── HDCException
        ├── DimensionsNotMatchingError
        ├── DtypesNotMatchingError
-       ├── GeneratorNotSupportedError
-       └── RecoveryError
-           ├── RecoveryNotConvergedError
-           └── RecoveryNotSupportedError
+       └── GeneratorNotSupportedError
 
 All PyHDC-specific errors inherit from ``HDCException``, so you can catch the
 base class to handle any library error.
@@ -75,11 +72,6 @@ output type (bits, words, or floats):
        enc = pyhdc.MAP_C(dimension=10_000)
        hv  = enc.generate()
 
-**RecoveryError and subclasses**
-
-The ``pyhdc.recovery`` module is not yet public, but the exception classes are
-exported for completeness. You will not encounter these in normal usage.
-
 **NotImplementedError (not an HDCException)**
 
 Calling ``.unbind()`` on an encoding that does not support it (e.g.,
@@ -121,7 +113,7 @@ Catching all PyHDC errors
        result = enc.bundle(hv1, hv2)
    except pyhdc.HDCException as e:
        # catches DimensionsNotMatchingError, DtypesNotMatchingError,
-       # GeneratorNotSupportedError, and RecoveryError subclasses
+       # and GeneratorNotSupportedError subclasses
        print(f"PyHDC error: {type(e).__name__}: {e}")
    except (ValueError, NotImplementedError) as e:
        # backend mismatch or unsupported operation

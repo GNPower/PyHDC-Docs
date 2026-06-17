@@ -64,8 +64,8 @@ LCG: Linear Congruential Generator
 
 Formula: :math:`X_{n+1} = (a X_n + c) \bmod m`
 
-Fast and simple; well-understood failure modes (low-order bits are less
-random). Sufficient for most HDC experiments.
+Fast and simple, low-order bits are less
+random. Sufficient for most HDC experiments.
 
 **Classes**: ``LCGGenerator``, ``MultiplicativeLCGGenerator``
 
@@ -83,7 +83,7 @@ LFSR: Linear Feedback Shift Register
 
 Shifts a binary register and XORs feedback taps to generate bits.
 Produces a maximal-length sequence of period :math:`2^n - 1` for an
-:math:`n`-bit register. Natively produces bits: suitable for binary and
+:math:`n`-bit register. Natively produces bits so is suitable for binary and
 integer encodings.
 
 **Classes**: ``LFSRGenerator``, ``FibonacciLFSRGenerator``, ``GaloisLFSRGenerator``
@@ -175,7 +175,7 @@ When to use each family
      - Recommended family
    * - General-purpose reproducibility
      - PCG (``pcg32``) or LCG (``numerical_recipes``)
-   * - Hardware / neuromorphic mapping
+   * - Hardware mapping
      - LFSR or LCA (natively produce bits)
    * - High-throughput float generation
      - Xorshift (``xorshift64`` or ``xoshiro256``)
