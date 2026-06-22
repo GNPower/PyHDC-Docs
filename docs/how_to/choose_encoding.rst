@@ -95,7 +95,7 @@ Full comparison table
      - Yes
      - Constant-norm bundles
    * - ``FHRR``
-     - angle [0, 2π]
+     - angle [-π, π)
      - float32
      - AngleAdd
      - AngleAdd

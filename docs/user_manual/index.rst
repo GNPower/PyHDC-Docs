@@ -13,6 +13,7 @@ Contents
 
    hdc_theory
    encodings_overview
+   array_layout
    binding_operations
    bundling_operations
    similarity_metrics
@@ -31,6 +32,11 @@ Overview
 :doc:`encodings_overview`
    The ``Encoding`` base class and ``EncodingSpec`` design; a tour of all
    four encoding families (MAP, HRR/FHRR, Matrix, Binary/Sparse).
+
+:doc:`array_layout`
+   The dimension-first ``(D, N, M)`` convention: axis 0 is always the
+   hypervector dimension, the trailing axes are the batch, and how bundling,
+   similarity, and binding read each axis.
 
 :doc:`binding_operations`
    Deep dive on every binding operation: element multiplication, circular

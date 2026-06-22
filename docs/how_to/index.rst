@@ -19,6 +19,12 @@ the basics. If you are new to PyHDC, start with the
      - How do I store and retrieve key-value pairs?
    * - :doc:`compute_similarity`
      - How do I compare hypervectors, including in batch?
+   * - :doc:`axis_aware_ops`
+     - How do I work with (D, N, M) batches?
+   * - :doc:`permute_sequences`
+     - How do I encode sequences with permutation?
+   * - :doc:`operator_syntax`
+     - How do I use operator syntax for bundle, bind, and permute?
    * - :doc:`switch_backends`
      - How do I move between NumPy and PyTorch / GPU?
    * - :doc:`reproducibility`
@@ -39,6 +45,9 @@ the basics. If you are new to PyHDC, start with the
    bundle_hypervectors
    bind_unbind
    compute_similarity
+   axis_aware_ops
+   permute_sequences
+   operator_syntax
    switch_backends
    reproducibility
    similarity_remap

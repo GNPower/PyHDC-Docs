@@ -61,6 +61,68 @@ returns a single ``(D,)`` prototype:
    result = enc.bundle(batch)
    print(result.shape)   # (10000,)
 
+Choose which axis to collapse
+------------------------------
+
+A higher-rank batch is a ``(D, N, M)`` tensor, where axis 0 is the dimension
+``D`` and each trailing-axis column is one hypervector. The ``axis`` keyword
+selects which batch axis ``bundle`` folds over.
+
+**Default is the last batch axis.** With ``axis=None`` (the default), ``bundle``
+reduces the last axis. A ``(D, N)`` batch still collapses to ``(D,)``, and a
+``(D, N, M)`` tensor collapses to ``(D, N)``:
+
+.. code-block:: python
+
+   import pyhdc
+
+   enc    = pyhdc.MAP_C(dimension=10_000)
+   tensor = enc.generate(size=(10_000, 8, 5))   # shape: (10000, 8, 5)
+
+   # default axis=None reduces the last axis (axis 2)
+   result = enc.bundle(tensor)
+   print(result.shape)   # (10000, 8)
+
+**Pass an explicit axis** to collapse a different batch axis. Axis 0 is the
+hypervector dimension and is never reducible, passing ``axis=0`` raises
+``ValueError``. Negative indices are normalized the usual way:
+
+.. code-block:: python
+
+   # reduce axis 1, keeping axis 2 as the remaining batch
+   result = enc.bundle(tensor, axis=1)
+   print(result.shape)   # (10000, 5)
+
+**A tuple of axes** folds several batch axes at once. This applies to the
+additive, element-wise bundlers (the MAP, HRR, FHRR addition variants and the
+BSDC bitwise-OR disjunction, BSDC_S/SEG/CDT), and it operates on a single
+batched tensor. BSDC_THIN (thinned OR) reduces a single axis only:
+
+.. code-block:: python
+
+   # reduce axes 1 and 2 together -> one prototype
+   result = enc.bundle(tensor, axis=(1, 2))
+   print(result.shape)   # (10000,)
+
+Get per-group results with axis
+--------------------------------
+
+``axis`` reduces the selected batch axis in place and returns a **single**
+``Hypervector``. To bundle each group of a 3-D batch separately, reduce the
+*other* batch axis and read the result columns, column ``j`` is group ``j``'s
+bundle:
+
+.. code-block:: python
+
+   single = enc.bundle(tensor, axis=2)   # one Hypervector, shape (10000, 8)
+   groups = enc.bundle(tensor, axis=1)   # one Hypervector, shape (10000, 5)
+   #                                       groups[:, j] is the bundle of group j
+
+The older ``batch_dim=`` keyword split a 3-D array along a dimension and returned
+a Python list of hypervectors. It is deprecated as of 2.1.0, emits a
+``DeprecationWarning``, and will be removed. ``axis=`` returns the same content as
+one tensor. Passing both ``axis`` and ``batch_dim`` raises ``ValueError``.
+
 Zero vector as the bundle identity
 ------------------------------------
 
@@ -106,8 +168,10 @@ interface is always the same:
      - Bundling behaviour
    * - MAP_C
      - Element-wise addition then clip to [-1,1]; ties broken randomly (``random_choice_range`` parameter)
-   * - MAP_I, MAP_B
-     - Element-wise addition with integer clipping
+   * - MAP_I
+     - Element-wise addition (plain sum), near-zero-sum ties broken randomly (``random_choice_range``)
+   * - MAP_B
+     - Element-wise addition then sign threshold (majority vote) to {-1, +1}
    * - HRR
      - Element-wise addition followed by L2 normalisation
    * - HRR_NoNorm
@@ -117,4 +181,4 @@ interface is always the same:
    * - BSC
      - Majority-vote threshold: each element is 1 if more than half the inputs are 1
    * - BSDC family
-     - Bitwise OR; BSDC_THIN applies random thinning after OR to maintain density
+     - Bitwise OR. BSDC_THIN applies random thinning after OR to maintain density

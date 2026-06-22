@@ -19,12 +19,12 @@ MAP family
 
 **Extra parameters** (in addition to :class:`Encoding` base parameters):
 
-* ``random_choice_range``: ``int`` or ``None``: controls band randomisation
-  during bundling. Elements whose absolute sum falls within ±``range`` of the
-  clipping boundary are assigned randomly to +1 or -1. Reduces systematic
-  bias. Default: ``None`` (no band randomisation).
+* ``random_choice_range``: ``float`` or ``None`` (rho): controls band
+  randomization during bundling. Coordinates whose pre-aggregate ``|sum|``
+  falls within the band are replaced by independent ``Uniform[-1, 1]`` draws.
+  Reduces systematic bias. Default: ``None`` (no band randomization).
 
-**Binding**: ElementMultiplication (element-wise product; self-inverse)
+**Binding**: ElementMultiplication (element-wise product, self-inverse)
 
 **Bundling**: ElementAdditionCut (element-wise sum then clip to [-1, 1])
 
@@ -67,7 +67,7 @@ MAP family
 
 **Binding**: ElementMultiplication
 
-**Bundling**: ElementAdditionBits (element-wise sum with per-step masking)
+**Bundling**: ElementAdditionBits (element-wise sum, then a single saturating clip to the integer range)
 
 **Similarity**: CosineSimilarity
 
@@ -80,13 +80,13 @@ MAP family
 .. autoclass:: MAP_B
    :show-inheritance:
 
-**Element type**: binary {0, 1}, default dtype ``int8``
+**Element type**: bipolar {-1, +1}, default dtype ``int8``
 
 **Extra parameters**: ``random_choice_range``
 
 **Binding**: ElementMultiplication
 
-**Bundling**: ElementAdditionBits (clips to {0, 1})
+**Bundling**: ElementAdditionBipolarThreshold (element-wise sum, then sign to {-1, +1})
 
 **Similarity**: CosineSimilarity
 
@@ -137,7 +137,7 @@ L2 norm. Maintains constant expected magnitude.
 .. autoclass:: FHRR
    :show-inheritance:
 
-**Element type**: angles in [0, 2π], default dtype ``float32``
+**Element type**: angles in [-π, π), default dtype ``float32``
 
 **Extra parameters**: ``random_choice_range``
 

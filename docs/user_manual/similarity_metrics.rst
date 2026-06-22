@@ -143,6 +143,80 @@ column-wise over axis 0. The supported input modes:
      - list of scalars
      - Pairwise: ``[sim(a, c), sim(b, d)]``
 
+Axis-aware reduction and trailing-axis broadcasting
+----------------------------------------------------
+
+Every metric reduces over **axis 0**, the hypervector dimension :math:`D`.
+The result shape is the broadcast of the two operands' trailing axes (axes 1
+and higher). The dimension axis disappears in the reduction. This is what
+lets a higher-rank batch line up against a lower-rank one. A ``(D, N)`` input
+compared against a ``(D, N, M)`` input pads the smaller operand to
+``(D, N, 1)`` and broadcasts over the last axis, yielding an ``(N, M)`` score
+array. The ``axis=`` keyword on :func:`~pyhdc.similarity` is keyword-only and,
+for a single batched input, selects which batch axis splits index 0 from the
+rest, the reduction itself stays on axis 0.
+
+A Python ``float`` comes back only when both operands are 1D (``(D,)`` against
+``(D,)``). Every other case returns a NumPy array or PyTorch tensor whose
+shape is the broadcast of the non-dimension axes. The ``similarity_remap``
+callback, when set, is applied to that result.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 30 40
+
+   * - A shape
+     - B shape
+     - Result
+   * - ``(D,)``
+     - ``(D,)``
+     - Python ``float`` (scalar)
+   * - ``(D,)``
+     - ``(D, N)``
+     - ``(N,)``
+   * - ``(D, N)``
+     - ``(D,)``
+     - ``(N,)``
+   * - ``(D, N)``
+     - ``(D, N)``
+     - ``(N,)``
+   * - ``(D,)``
+     - ``(D, N, M)``
+     - ``(N, M)``
+   * - ``(D, N, M)``
+     - ``(D,)``
+     - ``(N, M)``
+   * - ``(D, N)``
+     - ``(D, N, M)``
+     - ``(N, M)`` (A padded to ``(D, N, 1)``, broadcast over M)
+   * - ``(D, N, M)``
+     - ``(D, N)``
+     - ``(N, M)``
+   * - ``(D, N, M)``
+     - ``(D, N, M)``
+     - ``(N, M)``
+   * - ``(D, 1, M)``
+     - ``(D, N, M)``
+     - ``(N, M)`` (broadcast over axis 1)
+
+Single-input ``similarity`` on a ``(D, N, M, ...)`` batch (``ndim >= 3``)
+requires an explicit ``axis``. Passing a 1D single input or omitting the axis
+on a 3D+ single input raises ``ValueError``. The chosen axis must resolve to
+exactly one batch axis, and axis 0 is never reducible.
+
+.. code-block:: python
+
+   import numpy as np
+   import pyhdc
+
+   enc = pyhdc.MAP_C(dimension=10_000)
+
+   query = enc.generate(size=(10_000, 4))        # (D, N) = (D, 4)
+   codebook = enc.generate(size=(10_000, 4, 8))  # (D, N, M) = (D, 4, 8)
+
+   scores = enc.similarity(query, codebook)      # (N, M) = (4, 8)
+   print(scores.shape)                           # (4, 8)
+
 Choosing the right metric
 --------------------------
 

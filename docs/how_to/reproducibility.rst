@@ -99,6 +99,70 @@ random state without advancing the custom generator:
 
    hv_np = enc.generate(use_generator=False)   # uses NumPy, not the LCG
 
+Reproducible batched generation
+-------------------------------
+
+A tuple ``size`` produces a dimension-first batch: ``generate(size=(D, N))``
+returns a ``(D, N)`` tensor of ``N`` hypervectors, and
+``generate(size=(D, N, M))`` returns a ``(D, N, M)`` tensor of ``N * M``
+hypervectors. Axis 0 is always the dimension ``D``, the trailing axes are the
+batch. Index column ``j`` as ``batch[:, j]``.
+
+**Batched generation reproduces itself for a fixed seed and shape.** Calling
+``generate(size=(D, N))`` twice under the same seed yields the same batch:
+
+.. code-block:: python
+
+   import numpy as np
+   import pyhdc
+
+   enc = pyhdc.MAP_C(dimension=10_000)
+
+   np.random.seed(42)
+   first = enc.generate(size=(10_000, 8))
+
+   np.random.seed(42)
+   second = enc.generate(size=(10_000, 8))
+
+   print(np.array_equal(first.data, second.data))   # True
+
+**The i.i.d. fast path.** When ``use_generator`` is ``False`` and the encoding's
+element generator draws each coordinate independently, ``generate`` draws the
+whole ``(D, *batch)`` array in one vectorized call. The fast path qualifies for
+these six generators: ``BernoulliBipolar``, ``BernoulliBinary``,
+``UniformBipolar``, ``UniformAngles``, ``NormalReal``, and ``BernoulliSparse``.
+Because it draws the batch as one block, the result is **not** value-identical to
+``N`` separate ``generate(size=D)`` calls: a block draw and a per-vector loop
+walk the random stream in different orders.
+
+**Ordered and custom generators match the per-vector loop.** ``SparseSegmented``
+(the ``BSDC_SEG`` generator) is segment-structured rather than i.i.d., any custom
+``HDCGenerator``, and any call with ``use_generator=True``, also falls back to
+the loop. For these, ``generate`` builds the batch one vector at a time, so a
+seeded batch equals ``N`` successive single-vector draws:
+
+.. code-block:: python
+
+   import numpy as np
+   from pyhdc.generation import CommonLCGGenerators
+
+   gen = CommonLCGGenerators.numerical_recipes(seed=7)
+   enc = pyhdc.MAP_C(dimension=10_000, generator=gen)
+
+   batch = enc.generate(size=(10_000, 8), use_generator=True)
+
+   gen.reset()
+   columns = [enc.generate(size=10_000, use_generator=True) for _ in range(8)]
+   loop = np.stack([c.data for c in columns], axis=-1)
+
+   print(np.array_equal(batch.data, loop))   # True
+
+**Use** ``axis=`` **for reproducible bundling.** The deprecated ``batch_dim``
+bundling carries no fixed-seed guarantee, because tie-randomizing bundlers draw
+fresh random values at tie coordinates. The ``axis=`` form reduces in place
+without that extra draw, so it is the reproducible and preferred.
+See :ref:`similarity-batched` for the matching axis contract on the read side.
+
 Choosing a generator for reproducibility
 ------------------------------------------
 

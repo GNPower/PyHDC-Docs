@@ -139,7 +139,8 @@ pyhdc.components.bundling
 
 .. autofunction:: ElementAdditionBits
 
-   Element-wise sum with integer bit-width clipping. Used by MAP_I_Bits, MAP_B.
+   Element-wise sum in a wide accumulator, then a single saturating clip to the
+   integer bit-width range. Used by MAP_I_Bits.
 
 .. autofunction:: ElementAdditionBinaryThreshold
 
@@ -167,9 +168,9 @@ pyhdc.components.bundling
 
 .. autofunction:: DisjunctionThinned
 
-   Bitwise OR then random thinning to maintain target density. Used by BSDC_THIN.
+   Bitwise OR then random thinning to a maximum density. Used by BSDC_THIN.
 
-   :param target_density: Target density after thinning (float, 0 < d < 1).
+   :param density: Maximum output density (fraction of 1-bits) after thinning (float, default 0.5).
 
 pyhdc.components.elements
 --------------------------
@@ -185,7 +186,7 @@ Each function has signature ``(size, dtype) -> ndarray``.
 
 .. autofunction:: UniformAngles
 
-   Uniform random in [0, 2π].
+   Uniform random in [-π, π).
 
 .. autofunction:: NormalReal
 
@@ -195,7 +196,7 @@ Each function has signature ``(size, dtype) -> ndarray``.
 
    Bernoulli(p=0.5) → {0, 1}.
 
-.. autofunction:: BernoulliBiploar
+.. autofunction:: BernoulliBipolar
 
    Bernoulli(p=0.5) → {-1, +1}.
 
@@ -221,3 +222,103 @@ pyhdc.components.thinning
 
    No-op thinning function. Returns the input unchanged.
    Used by all encodings that do not perform thinning.
+
+pyhdc.components.unary
+--------------------------
+
+.. currentmodule:: pyhdc.components.unary
+
+Added in 2.1.0. Unary components back the four single-operand operations
+(:func:`permute`, :func:`inverse`, :func:`negative`, :func:`normalize`)
+exposed on :class:`~pyhdc.Hypervector`, on each encoding, and at module level.
+Each function takes raw array data, operates **dimension-first** (axis 0 is the
+hypervector dimension ``D``, trailing axes are the batch) and runs on both
+numpy and torch backends.
+
+An encoding wires these into its ``EncodingSpec`` through the ``permute_fn``,
+``inverse_fn``, ``normalize_fn``, and ``negative_fn`` fields. ``permute_fn``
+defaults to :func:`CyclicShift` when left unset, so every encoding has a
+permutation. The other three default to ``RaiseNotImplementedError``: an
+encoding that does not assign ``inverse_fn`` / ``normalize_fn`` / ``negative_fn``
+raises ``NotImplementedError`` when that operation is called. See
+:doc:`encodings` for the per-family support of each operation.
+
+.. autofunction:: CyclicShift
+
+   Cyclic-shift permutation along axis 0, broadcasts over trailing batch axes.
+   Encoding-agnostic, so it is the default ``permute_fn`` for all 15 encodings.
+   Implemented as ``np.roll(data, shift, axis=0)`` (torch:
+   ``torch.roll(data, shift, dims=0)``). A negative ``shift`` is the exact
+   inverse of the positive shift.
+
+   :param shift: Number of positions to shift. Default ``1``.
+
+.. autofunction:: IdentityInverse
+
+   Returns ``data`` unchanged. The binding inverse for self-inverse schemes
+   where each element is its own inverse: MAP bipolar multiply and BSC XOR.
+
+.. autofunction:: ReverseInverse
+
+   Exact involution inverse of circular convolution, used by the HRR family.
+   Keeps index 0 and reverses the remaining coordinates along axis 0:
+   ``np.concatenate([data[:1], np.flip(data[1:], axis=0)], axis=0)`` (torch:
+   ``torch.cat([data[:1], torch.flip(data[1:], dims=[0])], dim=0)``).
+
+.. autofunction:: PhaseNegate
+
+   FHRR binding inverse: negate the phase modulo 2π, ``np.mod(-data, 2*pi)``.
+
+.. autofunction:: Negate
+
+   Additive (bundling) inverse: element-wise negation ``-data``.
+
+.. autofunction:: L2Normalize
+
+   Normalise each hypervector to unit L2 length along axis 0,
+   ``data / np.linalg.norm(data, axis=0, keepdims=True)``. The canonical form
+   for HRR, VTB, and MBAT.
+
+.. autofunction:: WrapPhase
+
+   Normalise FHRR phases to the entry distribution range ``[-pi, pi)``,
+   ``np.mod(data + pi, 2*pi) - pi``.
+
+.. autofunction:: SignNormalize
+
+   Normalise MAP hypervectors back to bipolar ``{-1, 0, +1}`` by sign,
+   ``np.sign(data)``.
+
+The table maps each unary operation to the component that backs it and the
+encoding families that use it.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Operation
+     - Component
+     - Used by
+   * - ``permute``
+     - :func:`CyclicShift`
+     - All 15 encodings (default fallback)
+   * - ``inverse``
+     - :func:`IdentityInverse`
+     - MAP_I, MAP_I_Bits, MAP_B, BSC
+   * - ``inverse``
+     - :func:`ReverseInverse`
+     - HRR, HRR_NoNorm, HRR_ConstNorm
+   * - ``inverse``
+     - :func:`PhaseNegate`
+     - FHRR
+   * - ``negative``
+     - :func:`Negate`
+     - MAP_C, MAP_I, MAP_I_Bits, MAP_B, HRR, HRR_NoNorm, HRR_ConstNorm, VTB, MBAT
+   * - ``normalize``
+     - :func:`L2Normalize`
+     - HRR, HRR_NoNorm, HRR_ConstNorm, VTB, MBAT
+   * - ``normalize``
+     - :func:`WrapPhase`
+     - FHRR
+   * - ``normalize``
+     - :func:`SignNormalize`
+     - MAP_C, MAP_I, MAP_I_Bits, MAP_B

@@ -32,11 +32,15 @@ progressively, so reading them in order is recommended for beginners.
      - Intermediate
      - BSC, BSDC density control, BSDC_THIN, sequence encoding, similarity remapping
    * - 5
-     - :doc:`tutorial_5_custom_generators`
+     - :doc:`tutorial_5_custom_encodings`
+     - Intermediate-Advanced
+     - Subclassing Encoding, EncodingSpec, wiring components, custom inverse / permute / normalize
+   * - 6
+     - :doc:`tutorial_6_custom_generators`
      - Intermediate-Advanced
      - Seeded generators, generator families, reproducibility, custom generator subclass
 
-Tutorials 3-5 are independent of each other: you can read them in any order
+Tutorials 3-6 are independent of each other: you can read them in any order
 after completing Tutorials 1 and 2.
 
 .. toctree::
@@ -46,4 +50,5 @@ after completing Tutorials 1 and 2.
    tutorial_2_associative_memory
    tutorial_3_pytorch_gpu
    tutorial_4_sparse_binary
-   tutorial_5_custom_generators
+   tutorial_5_custom_encodings
+   tutorial_6_custom_generators

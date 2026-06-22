@@ -49,7 +49,7 @@ right answer.
 ----
 
 Building a multi-field prototype
--------------------------------
+--------------------------------
 
 A *prototype* stores multiple key-value pairs in a single hypervector by
 bundling the individual bindings:
@@ -140,7 +140,7 @@ correct value still has the highest similarity.
 ----
 
 Capacity: how many pairs can a prototype hold?
---------------------------------------------
+----------------------------------------------
 
 A bundled prototype acts as a superposition of all its bindings. As you add
 more bindings, the noise floor rises and eventually correct retrieval fails.

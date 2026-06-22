@@ -6,6 +6,50 @@ inputs.
 
 All bundling operations are available in ``pyhdc.components.bundling``.
 
+Reducing over a batch axis
+--------------------------
+
+Bundling reduces a batch of hypervectors along one axis and returns the
+combined result. **Axis 0 is always the hypervector dimension** :math:`D`
+and is never a reduce axis, reduction happens over the batch axes (axis 1
+and higher).
+
+The ``axis`` keyword on :func:`~pyhdc.bundle` selects which batch axis to
+collapse. **The default is the last axis.** For a ``(D, N)`` batch this
+reduces axis 1 and returns a single ``(D,)`` hypervector, matching the 2.0
+behaviour. For a ``(D, N, M)`` tensor it reduces axis 2 and returns
+``(D, N)``:
+
+.. code-block:: python
+
+   import pyhdc
+
+   batch = pyhdc.MAP_I().generate(size=(10000, 8))      # (D, N)
+   combined = pyhdc.bundle(batch)                       # (D,) over axis 1
+
+   tensor = pyhdc.MAP_I().generate(size=(10000, 8, 4))  # (D, N, M)
+   per_column = pyhdc.bundle(tensor)                    # (D, N) over axis 2
+   over_axis1 = pyhdc.bundle(tensor, axis=1)            # (D, M)
+
+Passing ``axis=0`` raises ``ValueError`` because axis 0 is the dimension
+and cannot be reduced.
+
+**Tuple of axes.** The additive, element-wise bundlers
+(``ElementAddition`` and its variants, ``AnglesOfElementAddition``, and
+``Disjunction``) accept a tuple of axes and fold them together in one
+reduction. ``DisjunctionThinned`` (BSDC_THIN) reduces a single axis only,
+because its thinning is per column. A tuple applies to a single batched
+tensor, collapsing axes 1 and 2 of a ``(D, N, M)`` tensor yields a single
+``(D,)`` hypervector:
+
+.. code-block:: python
+
+   tensor = pyhdc.MAP_I().generate(size=(10000, 8, 4))  # (D, N, M)
+   flat = pyhdc.bundle(tensor, axis=(1, 2))             # (D,)
+
+Bundling multiple separate operands requires ``(D,)`` or ``(D, N)``
+inputs, an operand with three or more axes raises ``ValueError``.
+
 ElementAddition
 ----------------
 
@@ -34,10 +78,12 @@ Element-wise sum followed by clipping each element back into the valid range:
 ElementAdditionBits
 --------------------
 
-**Used by**: MAP_I_Bits, MAP_B
+**Used by**: MAP_I_Bits
 
-Element-wise sum with per-step clipping to the integer range determined by
-the ``mask`` bit width. For MAP_B (binary), this clips to {0, 1}.
+Element-wise sum in a wide (int64) accumulator, then a single saturating clip to
+the int32 range. The clip happens once after the full reduction, not per addition, 
+so a running sum that would overflow mid-accumulation saturates at the bounds 
+instead of wrapping.
 
 ElementAdditionBinaryThreshold
 --------------------------------
@@ -59,8 +105,19 @@ at exactly 0.5 are resolved randomly.
    \text{rand}(\{0,1\}) & \text{if } \sum_k v_{k,i} = n/2
    \end{cases}
 
+**Randomized-bundling metadata.** The tie-randomizing bundlers report how
+many coordinates were resolved by a coin flip through ``random_zone_count``.
+The type follows the result shape: for a ``(D,)`` result it is a Python
+``int`` (the number of tie coordinates in that single vector). For a
+batched result it is a per-output-vector count array, one entry for each
+bundled output. Because the value at each tie coordinate is drawn at
+random, batched bundling that resolves ties has no fixed-seed guarantee,
+use ``axis=`` for the reproducible vectorized form.
+
 ElementAdditionBipolarThreshold
 ---------------------------------
+
+**Used by**: MAP_B
 
 Element-wise sum followed by a sign function, remapping to {-1, +1}.
 
@@ -148,6 +205,6 @@ Bitwise OR followed by random thinning to maintain a target density:
 This keeps density stable at the initial level regardless of how many bundle
 steps are performed.
 
-The ``target_density`` parameter of ``DisjunctionThinned`` is set
-automatically by the ``BSDC_THIN`` encoding based on the initial density of
-generated hypervectors.
+The ``density`` parameter of ``DisjunctionThinned`` is supplied by the
+``BSDC_THIN`` encoding from its own ``density`` constructor argument
+(default 0.5).

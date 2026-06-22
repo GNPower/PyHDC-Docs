@@ -70,7 +70,7 @@ access the thinned OR operation directly:
    a = enc.generate().data
    b = enc.generate().data
 
-   result = DisjunctionThinned(a, b, target_density=0.05)
+   result = DisjunctionThinned(a, b, density=0.05)
 
 Density guidelines
 -------------------

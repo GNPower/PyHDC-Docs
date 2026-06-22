@@ -86,8 +86,8 @@ Multiplicative-Additive-Permutation encodings use **dense bipolar** or
    * Useful for hardware implementations targeting specific word sizes
 
 **MAP_B**; Binary MAP
-   * Elements: binary {0, 1}, default dtype ``int8``
-   * Dense binary variant; binding is element-wise product; bundling clips to {0, 1}
+   * Elements: bipolar {-1, +1}, default dtype ``int8``
+   * Dense bipolar variant. Binding is element-wise product, bundling sign-thresholds to {-1, +1}
    * Unbind: yes
 
 HRR family
@@ -113,7 +113,7 @@ circular convolution binding.
      of bundled vectors, keeping constant norm regardless of bundle size
 
 **FHRR**; Fourier HRR
-   * Elements: angles in [0, 2π], stored as float32
+   * Elements: angles in [-π, π), stored as float32
    * Binding: element-wise angle addition (modular arithmetic)
    * Unbinding: element-wise angle subtraction
    * Bundling: compute resultant angle of summed phasors

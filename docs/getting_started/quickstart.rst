@@ -197,6 +197,37 @@ Here is the complete quickstart script as a single block:
    print(rankings[:3])   # ['red', 'green', 'blue'] (order may vary)
 
 
+Tensors and operators
+----------------------
+
+Batches generalize past two axes. **Axis 0 is always the dimension** ``D``;
+every trailing axis is batch. A ``(D, N, M)`` tensor holds ``N * M``
+hypervectors, one per trailing-axis slice.
+
+.. code-block:: python
+
+   cube = enc.generate(size=(10_000, 8, 4))   # (10000, 8, 4): 32 hypervectors
+
+PyHDC also reads as operators. Each one routes to an HDC method:
+``+`` bundles, ``*`` binds, ``/`` unbinds, ``>>`` permutes (cyclic shift along
+axis 0), and ``~`` inverts where the encoding defines an inverse.
+
+.. code-block:: python
+
+   a = enc.generate()
+   b = enc.generate()
+
+   bundled = a + b          # same as a.bundle(b)
+   bound   = a * b          # same as a.bind(b)
+   shifted = a >> 1         # same as a.permute(shift=1)
+   inv     = ~a             # same as a.inverse(); not all encodings define it, MAP-B does
+
+``~`` raises ``NotImplementedError`` on families without an inverse (for
+example ``MAP_C``, ``VTB``, ``BSDC_S``); ``MAP_B`` defines one. See
+:doc:`../how_to/operator_syntax` for the full operator table and
+:doc:`../user_manual/array_layout` for the dimension-first axis rules.
+
+
 Continue here
 -------------
 

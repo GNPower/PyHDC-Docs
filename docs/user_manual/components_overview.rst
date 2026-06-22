@@ -21,6 +21,7 @@ Submodule layout
    ├── similarity       : all similarity functions + remap_to_unit
    ├── elements         : element generator functions (how random values are drawn)
    ├── thinning         : thinning functions (post-process sparse binary vectors)
+   ├── unary            : permutation and per-vector unary functions (inverse, negative, normalize)
    └── input_formatting : internal normalisation utilities
 
 The EncodingSpec wiring
@@ -67,13 +68,13 @@ Element generators control how individual hypervector values are drawn.
    * - ``UniformBipolar``
      - Uniform random from {-1, +1} (Bernoulli p=0.5 then x2-1)
    * - ``UniformAngles``
-     - Uniform random in [0, 2π]
+     - Uniform random in [-π, π)
    * - ``NormalReal``
      - Normal distribution N(0, 1)
    * - ``BernoulliBinary``
      - Bernoulli(p=0.5) -> {0, 1}
-   * - ``BernoulliBiploar``
-     - Bernoulli(p=0.5) -> {-1, +1}  *(note: typo in source; "Biploar")*
+   * - ``BernoulliBipolar``
+     - Bernoulli(p=0.5) -> {-1, +1}
    * - ``BernoulliSparse``
      - k-sparse binary: exactly k elements are 1, rest are 0
    * - ``SparseSegmented``
@@ -93,6 +94,39 @@ density.
      - Description
    * - ``NoThin``
      - No-op; returns the input unchanged. Used by encodings that do not thin.
+
+unary submodule
+---------------
+
+Added in 2.1.0. The ``pyhdc.components.unary`` module holds the permutation
+function and the per-vector unary functions. Each takes raw array data,
+operates dimension-first (axis 0 is the hypervector dimension ``D``), and
+works on both numpy and torch backends. An ``EncodingSpec`` wires these into
+the ``permute_fn``, ``inverse_fn``, ``negative_fn``, and ``normalize_fn``
+fields, leaving ``permute_fn`` at ``None`` selects the shared ``CyclicShift``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Function
+     - Description
+   * - ``CyclicShift``
+     - Cyclic-shift permutation along axis 0. Broadcasts over trailing batch axes. The default ``permute`` for every encoding.
+   * - ``IdentityInverse``
+     - Returns the input unchanged, the binding inverse for self-inverse schemes (MAP bipolar multiply, BSC XOR).
+   * - ``ReverseInverse``
+     - Exact involution inverse of circular convolution (HRR). Keeps index 0 and reverses the remaining coordinates along axis 0.
+   * - ``PhaseNegate``
+     - FHRR binding inverse, negates the phase modulo 2π.
+   * - ``Negate``
+     - Additive (bundling) inverse, element-wise negation ``-data``.
+   * - ``L2Normalize``
+     - Normalizes each hypervector to unit L2 length along axis 0.
+   * - ``WrapPhase``
+     - Normalizes FHRR phases to the canonical range [-π, π).
+   * - ``SignNormalize``
+     - Normalizes MAP hypervectors back to bipolar {-1, 0, +1} by sign.
 
 similarity submodule
 ---------------------

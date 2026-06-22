@@ -83,6 +83,91 @@ You can also pass two equal-length lists of ``Hypervector`` objects:
    hvs_b = [enc.generate() for _ in range(5)]
    sims  = enc.similarity(hvs_a, hvs_b)   # list of 5 floats
 
+Similarity on (D, N, M) tensors
+-------------------------------
+
+A tensor of hypervectors has shape ``(D, N, M)``. Axis 0 is the dimension ``D``,
+and axes 1 and 2 are batch axes, so each ``tensor[:, i, j]`` column is one
+hypervector. Similarity always reduces over axis 0, the batch axes pass through
+to the result shape.
+
+**Single 3-D input needs an explicit axis.** With a ``(D, N)`` batch the
+column-0-versus-rest split (convention 3) is well defined because there is one
+batch axis. With a ``(D, N, M)`` tensor there are two batch axes, so "column 0"
+is ambiguous and PyHDC will not guess. ``axis`` is keyword-only, pass it to name
+the batch axis that splits index 0 from the rest:
+
+.. code-block:: python
+
+   tensor = enc.generate(size=(10_000, 4, 6))   # shape (10000, 4, 6)
+   sims   = enc.similarity(tensor, axis=1)      # split along axis 1
+
+   # Without axis, a 3-D single input raises:
+   #   ValueError: single-input similarity on a (D, N, M, ...) batch
+   #   requires an explicit axis
+
+The chosen split axis is kept (a length-1 head against the length-(size-1)
+rest) so it broadcasts against the remaining batch axes.
+
+**Two inputs: output shape by rank.** With two inputs, the result shape is the
+broadcast of the two operands' batch axes (axes 1 and up). Axis 0 is reduced
+away. Two 1-D inputs return a Python ``float``, every other combination returns
+a numpy array or torch tensor.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 30 40
+
+   * - A shape
+     - B shape
+     - Result
+   * - ``(D,)``
+     - ``(D,)``
+     - Python ``float`` (scalar)
+   * - ``(D,)``
+     - ``(D, N)``
+     - ``(N,)``
+   * - ``(D, N)``
+     - ``(D,)``
+     - ``(N,)``
+   * - ``(D, N)``
+     - ``(D, N)``
+     - ``(N,)``
+   * - ``(D,)``
+     - ``(D, N, M)``
+     - ``(N, M)``
+   * - ``(D, N, M)``
+     - ``(D,)``
+     - ``(N, M)``
+   * - ``(D, N)``
+     - ``(D, N, M)``
+     - ``(N, M)`` (A padded to ``(D, N, 1)``, broadcast over M)
+   * - ``(D, N, M)``
+     - ``(D, N)``
+     - ``(N, M)``
+   * - ``(D, N, M)``
+     - ``(D, N, M)``
+     - ``(N, M)``
+   * - ``(D, 1, M)``
+     - ``(D, N, M)``
+     - ``(N, M)`` (broadcast over axis 1)
+
+Two tensors of matching shape reduce to one score per column pair:
+
+.. code-block:: python
+
+   tensor_a = enc.generate(size=(10_000, 4, 6))   # shape (10000, 4, 6)
+   tensor_b = enc.generate(size=(10_000, 4, 6))   # shape (10000, 4, 6)
+   sims     = enc.similarity(tensor_a, tensor_b)  # shape (4, 6)
+
+A single vector compared against a whole tensor broadcasts over both batch axes:
+
+.. code-block:: python
+
+   query  = enc.generate()                       # shape (10000,)
+   tensor = enc.generate(size=(10_000, 4, 6))    # shape (10000, 4, 6)
+   sims   = enc.similarity(query, tensor)        # shape (4, 6)
+
 Output ranges by encoding
 --------------------------
 

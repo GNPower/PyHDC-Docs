@@ -8,7 +8,7 @@
 project = 'PyHDC'
 copyright = '2025, GNPower'
 author = 'GNPower'
-release = '2.0.0'
+release = '2.1.0'
 
 # -- General configuration ---------------------------------------------------
 

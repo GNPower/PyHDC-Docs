@@ -1,4 +1,4 @@
-Tutorial 5: Custom Generators and Reproducibility
+Tutorial 6: Custom Generators and Reproducibility
 ==================================================
 
 PyHDC comes with seven random number generator families in addition to the
@@ -67,7 +67,7 @@ Built-in generator families
 PyHDC provides seven generator families. Each comes with a ``Common*Generators``
 factory object that exposes named preset configurations.
 
-**LCG; Linear Congruential Generator**
+**LCG: Linear Congruential Generator**
 
 The classic :math:`X_{n+1} = (a X_n + c) \bmod m`. Fast, simple, good for
 reproducibility. Low-order bits have poor randomness, but this is rarely an
@@ -80,10 +80,10 @@ issue for HDC.
    gen = CommonLCGGenerators.park_miller(seed=42)
    # Also available: numerical_recipes, minstd_rand, borland, glibc, msvc
 
-**LFSR; Linear Feedback Shift Register**
+**LFSR: Linear Feedback Shift Register**
 
-Hardware-efficient; produces a maximal-length sequence. Generates *bits*
-natively: best paired with binary or near-binary encodings (MAP_I, MAP_B, BSC, BSDC).
+Hardware-efficient, produces a maximal-length sequence. Generates *bits*
+natively and is best paired with binary or near-binary encodings (MAP_I, MAP_B, BSC, BSDC).
 
 .. code-block:: python
 
@@ -91,7 +91,7 @@ natively: best paired with binary or near-binary encodings (MAP_I, MAP_B, BSC, B
 
    gen = CommonLFSRGenerators.fibonacci_16(seed=1)
 
-**PCG; Permuted Congruential Generator**
+**PCG: Permuted Congruential Generator**
 
 Better statistical quality than LCG. Highly recommended when you want
 both reproducibility and good randomness.
@@ -138,7 +138,7 @@ If you pair an incompatible generator with an encoding, PyHDC raises
    enc_ok  = pyhdc.MAP_B(dimension=10_000, generator=gen)
    enc_ok.generate()   # works
 
-   # LFSR produces bits: MAP_C needs floats → error
+   # LFSR produces bits: MAP_C needs floats -> error
    enc_bad = pyhdc.MAP_C(dimension=10_000, generator=gen)
    try:
        enc_bad.generate()

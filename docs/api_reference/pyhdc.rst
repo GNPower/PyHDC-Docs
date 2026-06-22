@@ -9,7 +9,7 @@ Version and availability
 .. py:data:: __version__
    :type: str
 
-   Current version string, e.g. ``"2.0.0"``.
+   Current version string, e.g. ``"2.1.0"``.
 
 .. py:data:: __author__
    :type: str
@@ -34,24 +34,39 @@ Convenience functions
 These functions are thin wrappers that delegate to the first hypervector's
 encoding. They are provided for concise one-off calls.
 
-.. py:function:: generate(encoding, size=None, use_generator=None)
+.. py:function:: generate(encoding, size, use_generator=None)
 
    Generate one or more hypervectors using ``encoding``.
 
    :param encoding: An instantiated ``Encoding`` object.
-   :param size: ``None`` or omitted for a single ``(D,)`` vector; an ``int`` for a
-                single vector of that dimension; a ``tuple`` ``(D, N)`` for a
-                dimension-first batch of ``N`` vectors (each column a hypervector).
+   :param size: an ``int`` for a single vector of that dimension, or a
+                dimension-first ``tuple`` ``(D, *batch)`` for a batch. Axis 0 is
+                always the hypervector dimension ``D``, the trailing axes are the
+                batch. ``(D, N)`` returns ``(D, N)`` (``N`` columns, each a
+                hypervector); ``(D, N, M)`` returns ``(D, N, M)`` (``N * M``
+                hypervectors). A non-int / non-tuple ``size`` raises ``ValueError``.
+                (The :meth:`Encoding.generate` method also accepts ``None`` to
+                default to the encoding dimension. This module-level wrapper
+                requires ``size``.)
    :param use_generator: Override the encoding's generator setting.
-                         ``True`` forces the custom generator; ``False``
+                         ``True`` forces the custom generator, ``False``
                          forces NumPy's default.
    :returns: A :class:`Hypervector`.
+
+   **Reproducibility.** Under a fixed seed and a given batch shape, batched
+   generation reproduces itself. With the i.i.d. element generators the whole
+   ``(D, *batch)`` array is drawn in one vectorized call, so the result is not
+   value-identical to generating the ``N`` vectors one at a time. Ordered
+   generators (LCG, LFSR, and the rest), any custom ``HDCGenerator``, and
+   ``SparseSegmented`` use a per-vector loop which does match ``N`` successive
+   ``generate(enc, size=D)`` calls. See :doc:`../how_to/reproducibility`.
 
    .. code-block:: python
 
       enc = pyhdc.MAP_C(dimension=10_000)
-      hv  = pyhdc.generate(enc)                          # (10000,)
-      batch = pyhdc.generate(enc, size=(10_000, 100))    # (10000, 100)
+      hv  = pyhdc.generate(enc, size=10_000)                 # (10000,)
+      batch = pyhdc.generate(enc, size=(10_000, 100))        # (10000, 100)
+      tensor = pyhdc.generate(enc, size=(10_000, 8, 4))      # (10000, 8, 4)
 
 .. py:function:: zeros(encoding, size=None)
 
@@ -87,6 +102,72 @@ encoding. They are provided for concise one-off calls.
    .. code-block:: python
 
       result = pyhdc.bind(key, value)
+
+.. py:function:: unbind(*hypervectors)
+
+   Unbind hypervectors using the encoding of the first argument, the inverse of
+   :func:`bind`.
+
+   :param hypervectors: Two or more :class:`Hypervector` objects.
+   :returns: A :class:`Hypervector`.
+
+   .. code-block:: python
+
+      value = pyhdc.unbind(bound, key)
+
+.. py:function:: permute(hypervector, shift=1)
+
+   Cyclic-shift permutation along axis 0 (the dimension). A negative ``shift``
+   is the exact inverse of the positive shift. ``permute`` is defined for every
+   encoding.
+
+   :param hypervector: A :class:`Hypervector` (vector or batch).
+   :param shift: Integer number of positions to roll along axis 0. Default ``1``.
+   :returns: A :class:`Hypervector`.
+
+   .. code-block:: python
+
+      shifted = pyhdc.permute(hv, shift=3)
+      restored = pyhdc.permute(shifted, shift=-3)   # == hv
+
+.. py:function:: inverse(hypervector)
+
+   Return the binding inverse of ``hypervector``. Raises ``NotImplementedError``
+   for encodings that do not define one (MAP_C, VTB, MBAT, and the BSDC family).
+
+   :param hypervector: A :class:`Hypervector`.
+   :returns: A :class:`Hypervector`.
+
+   .. code-block:: python
+
+      inv = pyhdc.inverse(hv)
+
+.. py:function:: negative(hypervector)
+
+   Return the bundling (additive) inverse of ``hypervector``, element-wise
+   negation. Raises ``NotImplementedError`` for encodings that do not define one
+   (FHRR, BSC, and the BSDC family).
+
+   :param hypervector: A :class:`Hypervector`.
+   :returns: A :class:`Hypervector`.
+
+   .. code-block:: python
+
+      neg = pyhdc.negative(hv)
+
+.. py:function:: normalize(hypervector)
+
+   Return the canonical form of ``hypervector`` for its encoding (sign for MAP,
+   unit L2 length for HRR/VTB/MBAT, wrapped phase for FHRR). Raises
+   ``NotImplementedError`` for encodings that do not define one (BSC and the
+   BSDC family).
+
+   :param hypervector: A :class:`Hypervector`.
+   :returns: A :class:`Hypervector`.
+
+   .. code-block:: python
+
+      canon = pyhdc.normalize(hv)
 
 .. py:function:: stack(hypervectors)
 

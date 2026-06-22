@@ -10,6 +10,110 @@ The source is `CHANGELOG.md on GitHub
 
 ----
 
+v2.1.0: 2026-06-18
+---------------------
+
+Added
+~~~~~
+
+* Multi-dimensional ``(D, N, M)`` batches. ``enc.generate(size=(D, N, M))`` returns
+  one :class:`~pyhdc.Hypervector` wrapping a ``(D, N, M)`` array; axis 0 is the
+  dimension ``D`` and every trailing-axis slice is a hypervector.
+* ``axis=`` keyword on :meth:`~pyhdc.Encoding.bundle`: reduce a chosen batch axis (an
+  int or a tuple of ints) and return a single :class:`~pyhdc.Hypervector`. ``axis=None``
+  reduces the last axis, so ``(D, N)`` collapses to ``(D,)`` and ``(D, N, M)`` collapses
+  to ``(D, N)``. Axis 0 is the dimension and cannot be reduced; passing ``axis=0`` raises
+  ``ValueError``.
+* ``axis=`` keyword (keyword-only) on :meth:`~pyhdc.Encoding.similarity`: for a single
+  ``(D, N, M, ...)`` batch, selects which batch axis splits index 0 from the rest.
+* :meth:`~pyhdc.Encoding.bind` and :meth:`~pyhdc.Encoding.unbind` batch automatically. The
+  element-wise binders (MAP multiply, BSC xor, FHRR angle add/sub) broadcast a batch
+  natively: a ``(D,)`` key binds against every column, and operands of mixed rank align by
+  trailing-axis padding. Every other binder (circular convolution/correlation, shifting,
+  segment shifting, matrix binding, VTB, context-dependent thinning) is applied per column
+  internally, so a batched ``bind(A, B)`` returns one ``(D, N)``
+  :class:`~pyhdc.Hypervector` without ``batch_dim``.
+* Two-input :meth:`~pyhdc.Encoding.similarity` broadcasting over trailing axes: the
+  result shape is the broadcast of the two operands' non-dimension axes. Two ``(D,)``
+  vectors return a Python ``float``; every other pairing returns an array.
+* First-class :meth:`~pyhdc.Encoding.permute`, :meth:`~pyhdc.Encoding.inverse`,
+  :meth:`~pyhdc.Encoding.negative`, and :meth:`~pyhdc.Encoding.normalize` on
+  :class:`~pyhdc.Encoding`, mirrored as methods on :class:`~pyhdc.Hypervector`
+  (:meth:`~pyhdc.Hypervector.permute`, :meth:`~pyhdc.Hypervector.inverse`,
+  :meth:`~pyhdc.Hypervector.negative`, :meth:`~pyhdc.Hypervector.normalize`). ``permute``
+  is defined for every encoding (cyclic shift along axis 0); ``inverse`` / ``negative`` /
+  ``normalize`` are wired per family and raise ``NotImplementedError`` where a family
+  does not define them.
+* Operator overloading on :class:`~pyhdc.Hypervector`: ``+`` (bundle), ``*`` (bind),
+  ``/`` (unbind), ``~`` (inverse), ``>>`` (permute by ``+k``), ``<<`` (permute by ``-k``).
+  A non-:class:`~pyhdc.Hypervector` operand to ``+ * /`` returns ``NotImplemented`` and
+  Python raises ``TypeError``; a ``bool`` shift on ``>>`` / ``<<`` is rejected.
+* Module-level :func:`~pyhdc.permute`, :func:`~pyhdc.inverse`, :func:`~pyhdc.negative`,
+  :func:`~pyhdc.normalize`, and :func:`~pyhdc.unbind`, joining the existing
+  :func:`~pyhdc.generate`, :func:`~pyhdc.zeros`, :func:`~pyhdc.bundle`,
+  :func:`~pyhdc.bind`, and :func:`~pyhdc.stack`.
+* :class:`~pyhdc.BSDC_THIN` is now reachable directly from the top level (previously only
+  via ``pyhdc.encodings``); all 15 encodings are exported at the top level.
+
+Changed (breaking)
+~~~~~~~~~~~~~~~~~~~
+
+* The misspelled ``BernoulliBiploar`` element generator is renamed to
+  ``BernoulliBipolar``; the old name is removed. Any direct import of the old name in
+  ``pyhdc.components.elements`` must be updated. The MAP_I, MAP_I_Bits, and MAP_B
+  encodings that use it are unchanged in behavior.
+
+**Migration guide**:
+
+.. code-block:: python
+
+   # The element generator was misspelled; import the corrected name.
+   from pyhdc.components.elements import BernoulliBipolar   # was BernoulliBiploar
+
+Changed
+~~~~~~~
+
+* Vectorized fast path for batched i.i.d. generation: with the default i.i.d. element
+  generators (Bernoulli bipolar/binary, uniform bipolar/angles, normal real, Bernoulli
+  sparse), ``generate(size=(D, N))`` draws the whole batch in one ``(D, *batch)`` call. It
+  is reproducible under a fixed seed for a given batch shape, but no longer value-identical
+  to generating the vectors one at a time. Dropping that cross-consistency removes a
+  full-array transpose copy, about 10-24% faster than the prior order-preserving draw.
+  Ordered and custom generators (and ``SparseSegmented`` for ``BSDC_SEG``) keep the
+  per-vector loop and still match ``N`` successive single-vector ``generate`` calls.
+* Non-batch-safe binders (circular convolution/correlation, shifting/segment-shifting for
+  ``BSDC_S`` / ``BSDC_SEG`` / ``BSDC_THIN``, matrix binding for ``MBAT``, VTB, and
+  context-dependent thinning for ``BSDC_CDT``) are applied per column when
+  :meth:`~pyhdc.Encoding.bind` / ``unbind`` receives a batched (``ndim > 1``) input,
+  returning one batched result. They previously produced a wrong result silently;
+  single-vector inputs are unchanged.
+* ``random_zone_count`` returns an ``int`` for a single ``(D,)`` result and an array for a
+  batched result.
+* ``ElementAdditionBits`` (MAP_I_Bits bundling) sums in a wide (int64) accumulator and
+  clips the total once, saturating at the bounds. This replaces the previous per-addition
+  clip, so results change when the running sum would have saturated mid-accumulation; it
+  is vectorized and accepts a tuple of axes.
+* ``DisjunctionThinned`` (BSDC_THIN bundling) thins a batched result without a per-column
+  Python loop: each surviving column keeps a uniformly random ``ceil(D * density)``-subset
+  of its set bits through a vectorized random-key selection.
+* ``bundle(array, batch_dim=k)`` on a 3-D array reduces the other batch axis in one
+  vectorized op instead of Python-looping the split slices (about 8x faster on a
+  ``1000 x 20 x 500`` array). Ragged nested-list inputs, ``batch_dim=0``, and
+  4-D-or-larger arrays keep the per-group path. For tie-randomizing bundlers the random
+  values at tie coordinates now differ from the previous per-group draws (still random;
+  ``batch_dim`` has no fixed-seed guarantee). ``axis=`` remains the preferred vectorized
+  form, returning a single tensor instead of a list.
+
+Deprecated
+~~~~~~~~~~
+
+* ``batch_dim`` on :meth:`~pyhdc.Encoding.bundle` / :meth:`~pyhdc.Encoding.bind` /
+  :meth:`~pyhdc.Encoding.unbind` is deprecated and will be removed in a future release.
+  Pass a batched array directly (operations batch automatically) or use ``axis=`` on
+  ``bundle``. Passing ``batch_dim`` now emits a ``DeprecationWarning``.
+
+----
+
 v2.0.0: 2026-06-12
 ---------------------
 

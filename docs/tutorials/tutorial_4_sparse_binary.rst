@@ -1,5 +1,5 @@
 Tutorial 4: (Sparse) Binary Encodings (BSC and BSDC)
-===================================================
+====================================================
 
 Binary encodings represent hypervectors as arrays of 0s and 1s (or -1s and
 +1s). Sparse variants keep most elements at 0. This tutorial covers the difference
@@ -270,6 +270,7 @@ In this tutorial you:
 What's next
 -----------
 
-* :doc:`tutorial_5_custom_generators` : seeded, reproducible experiments
+* :doc:`tutorial_5_custom_encodings` : build your own encoding from components
+* :doc:`tutorial_6_custom_generators` : seeded, reproducible experiments
 * :doc:`../how_to/control_density` : practical density control recipes
 * :doc:`../user_manual/encodings_overview` : full encoding family comparison

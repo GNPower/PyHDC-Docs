@@ -237,8 +237,6 @@ HRR uses circular convolution and correlation internally, but the ``.bind()``,
 
 ----
 
-----
-
 Where to go next
 -----------------
 

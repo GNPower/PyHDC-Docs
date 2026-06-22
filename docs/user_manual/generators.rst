@@ -185,3 +185,50 @@ When to use each family
      - ShiftedCounter (``FeistelCounterGenerator``)
    * - Maximum simplicity and portability
      - LCG (``numerical_recipes``)
+
+Vectorized fast path for batched generation
+-------------------------------------------
+
+When you call :func:`~pyhdc.generate` with a batch size such as
+``size=(D, N)`` or ``size=(D, N, M)``, PyHDC takes one of two routes. For a
+fixed set of i.i.d. element distributions it draws the whole batch in a single
+vectorized operation, for everything else it falls back to a per-vector loop.
+The two routes do not produce identical output. The fast path draws the whole
+batch in one call, so it is reproducible for a fixed seed and shape but not
+value-identical to the loop. The loop fallback does match ``N`` single-vector
+draws (see below).
+
+**Qualifying generators.** The fast path triggers only when ``use_generator``
+is False (no custom :class:`~pyhdc.generation.HDCGenerator` was supplied) and
+the encoding's element distribution is one of these six i.i.d. generators:
+
+* ``BernoulliBipolar`` : equal-probability draw from ``{-1, +1}``
+* ``BernoulliBinary`` : equal-probability draw from ``{0, 1}``
+* ``UniformBipolar`` : uniform on ``[-1, 1]``
+* ``UniformAngles`` : uniform on ``[-pi, pi]``
+* ``NormalReal`` : Gaussian with standard deviation ``sqrt(1/D)``
+* ``BernoulliSparse`` : Bernoulli with probability ``1/sqrt(D)``
+
+These are the defaults behind the MAP, BSC, BSDC (dense), HRR/FHRR, and related
+families, so most batched generation hits the fast path automatically.
+
+**Reproducible, but not identical to the loop.** The fast path draws the batch
+in one ``(D, *batch)`` call. Under a fixed seed and shape it reproduces itself,
+but it is not value-identical to ``N`` successive ``generate(size=D)`` calls. A
+single block draw and a per-vector loop walk the random stream in different
+orders.
+
+**Ordered and custom generators use the loop.** Two cases fall back to the
+sequential per-column loop:
+
+* ``use_generator`` is True, meaning you passed a custom
+  :class:`~pyhdc.generation.HDCGenerator` (LCG, PCG, Xorshift, LFSR, DLFSR,
+  LCA, ShiftedCounter) or set ``use_generator=True``.
+* the element distribution is not one of the six i.i.d. generators above. This
+  covers ``SparseSegmented`` (the ``BSDC_SEG`` generator, which is
+  segment-structured rather than i.i.d.) and any custom distribution.
+
+In the fallback, PyHDC generates the ``N`` vectors one at a time and stacks
+them as columns, so a seeded batch equals ``N`` successive single-vector draws.
+For these generators the batch and the loop agree exactly, only the i.i.d. fast
+path trades that loop-equality for speed.

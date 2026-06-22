@@ -89,28 +89,36 @@ Batch selection
 Bundle and bind
 ^^^^^^^^^^^^^^^
 
-.. py:method:: Hypervector.bundle(*others, batch_dim=None)
+.. py:method:: Hypervector.bundle(*others, axis=None, batch_dim=None)
    :no-index:
 
-   Bundle this hypervector with one or more others.
+   Bundle this hypervector with one or more others. A batched operand is reduced
+   automatically, ``axis=`` selects which batch axis to collapse.
 
    :param others: Additional :class:`Hypervector` objects.
-   :param batch_dim: For 3-D inputs, the axis along which to bundle.
+   :param axis: Batch axis (or tuple of axes) to reduce. Axis 0 cannot be reduced.
+   :param batch_dim: Deprecated as of 2.1.0, emits ``DeprecationWarning`` and
+                     will be removed in a future release. Pass a batched operand or use ``axis=``.
    :returns: :class:`Hypervector`
 
 .. py:method:: Hypervector.bind(*others, batch_dim=None)
    :no-index:
 
-   Bind this hypervector with one or more others.
+   Bind this hypervector with one or more others. Batched operands are handled
+   automatically: element-wise binders broadcast, others are applied per column.
 
    :param others: Additional :class:`Hypervector` objects.
+   :param batch_dim: Deprecated as of 2.1.0, emits ``DeprecationWarning`` and
+                     will be removed in a future release. Pass a batched operand instead.
    :returns: :class:`Hypervector`
 
 .. py:method:: Hypervector.unbind(*others, batch_dim=None)
    :no-index:
 
-   Unbind to recover a component.
+   Unbind to recover a component. Batched operands are handled automatically.
 
+   :param batch_dim: Deprecated as of 2.1.0, emits ``DeprecationWarning`` and
+                     will be removed in a future release. Pass a batched operand instead.
    :raises NotImplementedError: For encodings that do not support unbinding
                                 (e.g., ``BSDC_CDT``).
    :returns: :class:`Hypervector`
@@ -121,6 +129,68 @@ Bundle and bind
    Apply the encoding's thinning operation (sparse binary encodings only).
    For encodings that do not thin, returns ``self`` unchanged.
 
+   :returns: :class:`Hypervector`
+
+Unary operations
+^^^^^^^^^^^^^^^^
+
+These four operate dimension-first. Axis 0 is always the dimension ``D``, and
+each operation broadcasts over the trailing batch axes of a ``(D, N)`` or
+``(D, N, M)`` input. Each delegates to the encoding (``self._encoding.<op>``)
+and returns a new :class:`Hypervector`. Whether an operation is defined depends
+on the encoding family. The per-family behavior is listed below and resolved
+through the encoding's ``EncodingSpec``.
+
+.. py:method:: Hypervector.permute(shift=1)
+   :no-index:
+
+   Cyclic-shift permutation along axis 0 (the dimension). A positive ``shift``
+   rolls coordinates forward, a negative ``shift`` rolls them back and is the
+   exact inverse of the positive shift. Every encoding defines ``permute``: when
+   an encoding does not supply its own ``permute_fn``, the shared
+   ``CyclicShift`` component is used, so all families support it by default.
+
+   :param shift: Integer number of positions to roll. Default ``1``.
+   :returns: :class:`Hypervector`
+
+.. py:method:: Hypervector.inverse()
+   :no-index:
+
+   The binding inverse: the element that unbinds what binding produced. The
+   mechanism is family-specific (``IdentityInverse`` for self-inverse binding,
+   ``ReverseInverse`` for circular convolution, ``PhaseNegate`` for FHRR).
+
+   :raises NotImplementedError: For encodings whose ``EncodingSpec`` leaves
+                                ``inverse_fn`` at its default: ``MAP_C``,
+                                ``VTB``, ``MBAT``, ``BSDC_CDT``, ``BSDC_S``,
+                                ``BSDC_SEG``, and ``BSDC_THIN``.
+   :returns: :class:`Hypervector`
+
+.. py:method:: Hypervector.normalize()
+   :no-index:
+
+   Normalize to the entry distribution for the encoding. The mechanism is family-specific
+   (``SignNormalize`` to bipolar ``{-1, 0, +1}`` for MAP, ``L2Normalize`` to
+   unit L2 length along axis 0 for HRR/VTB/MBAT, ``WrapPhase`` to ``[-pi, pi)``
+   for FHRR).
+
+   :raises NotImplementedError: For encodings whose ``EncodingSpec`` leaves
+                                ``normalize_fn`` at its default: ``BSC`` and all
+                                four BSDC variants (``BSDC_CDT``, ``BSDC_S``,
+                                ``BSDC_SEG``, ``BSDC_THIN``).
+   :returns: :class:`Hypervector`
+
+.. py:method:: Hypervector.negative()
+   :no-index:
+
+   The bundling (additive) inverse: element-wise negation for the additive
+   families (``Negate``).
+
+   :raises NotImplementedError: For encodings whose ``EncodingSpec`` leaves
+                                ``negative_fn`` at its default: ``FHRR``,
+                                ``BSC``, and all four BSDC variants
+                                (``BSDC_CDT``, ``BSDC_S``, ``BSDC_SEG``,
+                                ``BSDC_THIN``).
    :returns: :class:`Hypervector`
 
 Backend and device conversion
@@ -193,10 +263,78 @@ Special methods
       hv0   = batch[:, 0]        # shape (10000,): first hypervector (column 0)
       first5 = batch[:, :5]      # shape (10000, 5): first five hypervectors
 
+Operators route through the encoding, so each one raises per family exactly as
+the underlying method does. For ``+``, ``*``, and ``/`` a non-:class:`Hypervector`
+right-hand operand returns ``NotImplemented``, which Python turns into a
+``TypeError``. There are no reflected dunders, so ``other + hv`` with a
+non-hypervector ``other`` also raises ``TypeError``.
+
+.. code-block:: python
+
+   a = enc.generate(size=10_000)
+   b = enc.generate(size=10_000)
+
+   bundled = a + b       # a.bundle(b)
+   bound   = a * b       # a.bind(b)
+   recov   = bound / b   # bound.unbind(b)
+   inv     = ~a          # a.inverse()
+   rolled  = a >> 3      # a.permute(shift=3)
+   back    = rolled << 3 # a.permute(shift=-3), inverse of >> 3
+
+.. py:method:: Hypervector.__add__(other)
+   :no-index:
+
+   Bundle. Routes to ``self.bundle(other)``. ``other`` must be a
+   :class:`Hypervector`, any other type returns ``NotImplemented``. Defined for
+   all encodings.
+
+.. py:method:: Hypervector.__mul__(other)
+   :no-index:
+
+   Bind. Routes to ``self.bind(other)``. ``other`` must be a
+   :class:`Hypervector`, any other type returns ``NotImplemented``. Defined for
+   all encodings. On a batched (``ndim > 1``) operand the non-element-wise
+   binders (HRR convolution, shifting, matrix, VTB, BSDC_CDT) are applied per
+   column, returning one batched result.
+
+.. py:method:: Hypervector.__truediv__(other)
+   :no-index:
+
+   Unbind. Routes to ``self.unbind(other)``. ``other`` must be a
+   :class:`Hypervector`, any other type returns ``NotImplemented``.
+
+   :raises NotImplementedError: For ``BSDC_CDT`` (its ``unbinding_fn`` is the
+                                default raising stub).
+
+.. py:method:: Hypervector.__invert__()
+   :no-index:
+
+   Inverse. Routes to ``self.inverse()``.
+
+   :raises NotImplementedError: For ``MAP_C``, ``VTB``, ``MBAT``, ``BSDC_CDT``,
+                                ``BSDC_S``, ``BSDC_SEG``, and ``BSDC_THIN`` (see
+                                :py:meth:`Hypervector.inverse`).
+
+.. py:method:: Hypervector.__rshift__(shift)
+   :no-index:
+
+   Permute forward. Routes to ``self.permute(shift=int(shift))``. ``shift`` must
+   be integral (Python ``int`` or any ``numbers.Integral`` such as a NumPy
+   integer) and must not be a ``bool``; a ``bool``, float, or other type returns
+   ``NotImplemented`` (Python raises ``TypeError``). Defined for all encodings.
+
+.. py:method:: Hypervector.__lshift__(shift)
+   :no-index:
+
+   Permute backward. Routes to ``self.permute(shift=-int(shift))`` and is the
+   exact inverse of ``>>`` by the same amount. Same ``shift`` rule as
+   :py:meth:`Hypervector.__rshift__`: integral and not ``bool``, else
+   ``NotImplemented``. Defined for all encodings.
+
 .. py:method:: Hypervector.__len__()
    :no-index:
 
-   Return ``shape[0]``, which is the hypervector dimension ``D`` (axis 0) -- not
+   Return ``shape[0]``, which is the hypervector dimension ``D`` (axis 0), not
    the batch count, since batches are dimension-first ``(D, N)``.
 
 .. py:method:: Hypervector.__repr__()

@@ -137,30 +137,41 @@ Methods
 
    :returns: ``float``, ``ndarray``, ``Tensor``, or ``list`` depending on inputs.
 
-.. py:method:: Encoding.bundle(*hypervectors, batch_dim=None)
+.. py:method:: Encoding.bundle(*hypervectors, axis=None, batch_dim=None)
    :no-index:
 
-   Bundle hypervectors.
+   Bundle hypervectors. A batched ``(D, *batch)`` input is reduced automatically.
+   ``axis=`` selects which batch axis to collapse (an int or a tuple of ints,
+   defaulting to the last). Axis 0 is the hypervector dimension and cannot be reduced.
 
-   :param hypervectors: Positional :class:`Hypervector` arguments, or a
-                        list of lists for batched bundling.
-   :param batch_dim: Axis along which to bundle for 3-D tensor inputs.
+   :param hypervectors: Positional :class:`Hypervector` arguments, a batched
+                        array, or a list of lists for grouped bundling.
+   :param axis: Batch axis (or tuple of axes) to reduce.
+   :param batch_dim: Deprecated as of 2.1.0; emits ``DeprecationWarning`` and
+                     will be removed. Pass a batched array or use ``axis=``.
    :returns: :class:`Hypervector` or ``list[Hypervector]``
 
 .. py:method:: Encoding.bind(*hypervectors, batch_dim=None)
    :no-index:
 
-   Bind hypervectors.
+   Bind hypervectors. Batched inputs are handled automatically. The element-wise
+   binders broadcast, and every other binder is applied per column, returning one
+   batched result.
 
-   :returns: :class:`Hypervector` or ``list[Hypervector]``
+   :param batch_dim: Deprecated as of 2.1.0, emits ``DeprecationWarning`` and
+                     will be removed in a future release. Pass a batched array instead.
+   :returns: :class:`Hypervector`
 
 .. py:method:: Encoding.unbind(*hypervectors, batch_dim=None)
    :no-index:
 
-   Unbind to recover a component.
+   Unbind to recover a component. Batched inputs are handled automatically, the
+   same way as :meth:`bind`.
 
+   :param batch_dim: Deprecated as of 2.1.0; emits ``DeprecationWarning`` and
+                     will be removed in a future release. Pass a batched array instead.
    :raises NotImplementedError: For encodings that do not support unbinding.
-   :returns: :class:`Hypervector` or ``list[Hypervector]``
+   :returns: :class:`Hypervector`
 
 .. py:method:: Encoding.thin(hypervector)
    :no-index:
