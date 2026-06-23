@@ -16,6 +16,7 @@ Contents
    array_layout
    binding_operations
    bundling_operations
+   unary_operations
    similarity_metrics
    generators
    backends
@@ -45,6 +46,10 @@ Overview
 :doc:`bundling_operations`
    Deep dive on every bundling operation: addition variants, normalisation,
    majority vote, bitwise OR, and thinned OR.
+
+:doc:`unary_operations`
+   The four single-vector operations (permute, inverse, negative, and
+   normalize), which families define each, and the component behind it.
 
 :doc:`similarity_metrics`
    Cosine, Hamming, Overlap, and Angle distance: formulas, output ranges,

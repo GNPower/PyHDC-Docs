@@ -168,6 +168,6 @@ Where permutation fits among the operators
 
 For the mathematics of cyclic shift and its role in sequence and structure
 encoding, see the Permutation section of
-:doc:`../user_manual/binding_operations`. For the full operator table,
+:doc:`../user_manual/unary_operations`. For the full operator table,
 including how ``>>`` and ``<<`` dispatch and which operands they accept, see
 :doc:`operator_syntax`.
