@@ -4,7 +4,8 @@ Encodings Overview
 An *encoding* in PyHDC is a complete specification of how hypervectors are
 generated and how the three primitives (bundle, bind, similarity) are
 implemented. The sections below cover the shared base class and then each
-of the four families.
+of the four families. To map raw data (scalars, periodic values, or feature
+vectors) into these encodings, see :doc:`data_encoders`.
 
 The Encoding base class
 ------------------------
@@ -33,7 +34,10 @@ accepts these shared parameters:
      - Override the default data type
    * - ``mask``
      - int or None
-     - Bit mask for MAP_I_Bits; sets the integer bit width
+     - Bit mask for MAP_I_Bits, must have the form ``2**k - 1`` or the
+       constructor raises ``ValueError`` pointing at ``bit_width``. Selects
+       the signed saturation width ``k``, the new ``bit_width`` argument
+       overrides it
    * - ``generator``
      - HDCGenerator or None
      - Custom random generator; if None, uses NumPy's default RNG
@@ -57,6 +61,10 @@ the five component functions:
        unbinding_fn: Callable
        mask: Optional[int] = None
        generator_output_type: Literal["bits", "words", "floats"] = "floats"
+       permute_fn: Optional[Callable] = None
+       inverse_fn: Optional[Callable] = None
+       normalize_fn: Optional[Callable] = None
+       negative_fn: Optional[Callable] = None
 
 Subclasses implement ``_get_encoding_spec()`` to return a populated
 ``EncodingSpec``. Users never interact with ``EncodingSpec`` directly.
@@ -82,7 +90,16 @@ Multiplicative-Additive-Permutation encodings use **dense bipolar** or
    * Unbind: yes
 
 **MAP_I_Bits**; Fixed-Width Integer MAP
-   * Like MAP_I but the ``mask`` parameter sets a custom integer bit width
+   * Like MAP_I but the ``mask`` parameter sets a custom integer bit width.
+     ``mask`` must have the form ``2**k - 1``, any other value raises
+     ``ValueError`` pointing at ``bit_width``. The ``bit_width`` argument
+     overrides ``mask`` when set
+   * The storage dtype auto-widens across ``int8``, ``int16``, ``int32``,
+     ``int64`` to hold the configured width. The default ``mask`` of
+     ``(2**32) - 1`` keeps int32 saturation, unchanged from before
+   * Binding a bundled (saturated, non-bipolar) vector at a narrow width can
+     overflow, because the product is not re-clipped. Bind before bundling,
+     or use a wider width, if you need to bind sums
    * Useful for hardware implementations targeting specific word sizes
 
 **MAP_B**; Binary MAP

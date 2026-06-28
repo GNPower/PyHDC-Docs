@@ -237,3 +237,5 @@ Continue here
   use case
 * :doc:`../user_manual/encodings_overview` : a full comparison of all 15
   encoding families
+* :doc:`../how_to/encode_data` : turn scalars and feature vectors into
+  hypervectors with the data encoders (Level, Thermometer, Projection)

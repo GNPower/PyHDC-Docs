@@ -10,6 +10,74 @@ The source is `CHANGELOG.md on GitHub
 
 ----
 
+v2.2.0: 2026-06-27
+---------------------
+
+Added
+~~~~~
+
+* Data encoders in the new ``pyhdc.encoders`` package. Each :class:`~pyhdc.encoders.Encoder`
+  wraps an :class:`~pyhdc.Encoding` instance and maps a value, feature vector, or batch to
+  a dimension-first ``(D, B)`` :class:`~pyhdc.Hypervector` via ``encode`` (or by calling the
+  encoder directly). Codebook encoders: :class:`~pyhdc.encoders.Empty`,
+  :class:`~pyhdc.encoders.Identity`, :class:`~pyhdc.encoders.Random`,
+  :class:`~pyhdc.encoders.Level`, :class:`~pyhdc.encoders.Thermometer`,
+  :class:`~pyhdc.encoders.Circular`. Functional encoders:
+  :class:`~pyhdc.encoders.Projection`, :class:`~pyhdc.encoders.Sinusoid`,
+  :class:`~pyhdc.encoders.Density`, :class:`~pyhdc.encoders.FractionalPower`. A
+  family-specific encoder raises ``NotImplementedError`` where the family has no definition
+  (``Identity`` on VTB/MBAT/BSDC, ``Thermometer``/``Density`` on continuous or phase
+  families, ``Projection`` on BSC/BSDC, ``FractionalPower`` outside FHRR and the HRR family).
+  ``Identity`` returns the binding-identity element (the ``e`` where ``bind(x, e) == x``):
+  all-ones for MAP, all-zeros for BSC, the impulse for the HRR family, zero phase for FHRR.
+* Family-aware basis builders in the new ``pyhdc.components.basis`` package:
+  :func:`~pyhdc.components.basis.empty`, :func:`~pyhdc.components.basis.identity`,
+  :func:`~pyhdc.components.basis.random`, :func:`~pyhdc.components.basis.level`,
+  :func:`~pyhdc.components.basis.circular`, :func:`~pyhdc.components.basis.thermometer`,
+  plus :func:`~pyhdc.components.basis.family_endpoints`. Each returns a ``(D, count)``
+  codebook in the encoding's value domain and backend.
+* Cross similarity. :meth:`~pyhdc.Encoding.similarity` with ``mode="cross"``, ``A=(D, P)``
+  and ``B=(D, M)`` returns the full ``(P, M)`` matrix of every column of ``A`` against every
+  column of ``B``, backed by a single matmul with no ``(D, P, M)`` intermediate. Available on
+  :meth:`~pyhdc.Encoding.similarity`, :meth:`~pyhdc.Hypervector.similarity`, and the new
+  module-level :func:`~pyhdc.similarity`. Implemented for Cosine, Hamming, Overlap, and
+  Angle; an encoding whose metric is outside that set raises ``NotImplementedError`` so the
+  caller can fall back to a per-pair loop. Binary metrics cast to ``float64`` for a BLAS
+  matmul, and cosine guards a zero-norm column (scores 0, not ``nan``).
+* Module-level convenience function :func:`~pyhdc.similarity`, joining the existing
+  :func:`~pyhdc.generate`, :func:`~pyhdc.zeros`, :func:`~pyhdc.bundle`, :func:`~pyhdc.bind`,
+  and :func:`~pyhdc.unbind`.
+* Composable component helpers, each in an operation-named module: random-selection bundling
+  ``randsel`` / ``multirandsel`` and additive ``multiset`` / ``multibundle`` in
+  ``pyhdc.components.bundling``, multiplicative ``multibind`` in
+  ``pyhdc.components.binding``, and ``hard_quantize`` / ``soft_quantize`` in
+  ``pyhdc.components.quantization``.
+* ``MAP_I_Bits`` gains a ``bit_width`` parameter to set the signed saturation width
+  explicitly (overrides ``mask``).
+
+Changed (breaking)
+~~~~~~~~~~~~~~~~~~~
+
+* **Narrow:** ``MAP_I_Bits`` rejects a ``mask`` that is not of the form ``2**k - 1``
+  (contiguous low bits). Such a value was previously accepted and silently ignored (always
+  clipping at int32), it now raises ``ValueError``. Pass ``bit_width=k`` for an explicit
+  k-bit limit. Default construction is unaffected.
+
+Fixed
+~~~~~
+
+* :meth:`~pyhdc.Encoding.zeros` now works on the torch backend. It previously passed the
+  encoding's numpy dtype straight to ``torch.zeros``, which raised a ``TypeError``, it now
+  builds in numpy and converts, preserving the dtype.
+* ``MAP_I_Bits`` now honors its bit width. The post-bundle saturation bounds and the storage
+  dtype are derived from ``mask`` (which must be ``2**k - 1``) or the new ``bit_width``,
+  instead of being hard-coded to int32 with the ``mask`` ignored. The default
+  ``mask=(2**32) - 1`` is unchanged (int32 bounds, int32 storage). A narrow width now
+  saturates correctly (an 8-bit mask clips to ``[-128, 127]`` and stores int8), a width
+  wider than 32 widens the storage dtype (up to int64) so the sum no longer wraps on cast.
+
+----
+
 v2.1.0: 2026-06-18
 ---------------------
 

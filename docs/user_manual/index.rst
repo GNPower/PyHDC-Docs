@@ -13,6 +13,7 @@ Contents
 
    hdc_theory
    encodings_overview
+   data_encoders
    array_layout
    binding_operations
    bundling_operations
@@ -33,6 +34,12 @@ Overview
 :doc:`encodings_overview`
    The ``Encoding`` base class and ``EncodingSpec`` design; a tour of all
    four encoding families (MAP, HRR/FHRR, Matrix, Binary/Sparse).
+
+:doc:`data_encoders`
+   The Encoder object model (:class:`pyhdc.Encoder`): codebook encoders (Level,
+   Thermometer, Circular, etc.) and functional encoders (Projection,
+   Sinusoid, Density, FractionalPower), with the per-family support rules that
+   govern which encoders each encoding accepts.
 
 :doc:`array_layout`
    The dimension-first ``(D, N, M)`` convention: axis 0 is always the

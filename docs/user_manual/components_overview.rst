@@ -22,6 +22,8 @@ Submodule layout
    ├── elements         : element generator functions (how random values are drawn)
    ├── thinning         : thinning functions (post-process sparse binary vectors)
    ├── unary            : permutation and per-vector unary functions (inverse, negative, normalize)
+   ├── basis            : family-aware basis builders (codebooks for data encoders)
+   ├── quantization     : sign and tanh quantization of raw element values
    └── input_formatting : internal normalisation utilities
 
 The EncodingSpec wiring
@@ -128,6 +130,98 @@ fields, leaving ``permute_fn`` at ``None`` selects the shared ``CyclicShift``.
    * - ``SignNormalize``
      - Normalizes MAP hypervectors back to bipolar {-1, 0, +1} by sign.
 
+basis submodule
+---------------
+
+Added in 2.2.0. The ``pyhdc.components.basis`` package holds the family-aware
+builders that produce a codebook for a given encoding. Each builder has the
+signature ``fn(encoding, count, dimension=None)`` and returns a ``(D, count)``
+array in the encoding's value domain and backend. These builders back the
+codebook data encoders (``Level``, ``Thermometer``, ``Circular``, etc.),
+see :doc:`data_encoders`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Function
+     - Description
+   * - ``empty``
+     - ``count`` all-zero hypervectors as a ``(D, count)`` array.
+   * - ``identity``
+     - ``count`` copies of the binding-identity element ``e`` (where ``bind(x, e) == x``).
+   * - ``random``
+     - ``count`` independent random hypervectors as a ``(D, count)`` codebook.
+   * - ``level``
+     - A linear level codebook: adjacent columns correlated, ends near-orthogonal.
+   * - ``circular``
+     - A ring level codebook: similarity wraps, so level 0 ~ level L-1.
+   * - ``thermometer``
+     - A deterministic cumulative (unary) codebook. Discrete families only.
+
+Two scalar helpers sit alongside the builders:
+
+* ``family_endpoints(encoding)`` : the ``(low, high)`` element endpoints for the
+  encoding's value domain.
+* ``binding_identity(encoding, dimension=None)`` : the binding-identity element
+  ``e`` as a ``(D,)`` array.
+
+quantization submodule
+----------------------
+
+Added in 2.2.0. The ``pyhdc.components.quantization`` module maps continuous
+element values to a bipolar form. Both functions take a raw array, operate
+dimension-first (axis 0 is the hypervector dimension ``D``), and work on the
+numpy and torch backends.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Function
+     - Description
+   * - ``hard_quantize(data)``
+     - Maps each value to ``{-1, 0, +1}`` by sign.
+   * - ``soft_quantize(data, temperature=1.0)``
+     - Smooth bipolar surrogate ``tanh(data / temperature)`` in ``(-1, 1)``.
+
+bundling helpers
+----------------
+
+Added in 2.2.0. The ``pyhdc.components.bundling`` module now has composable helpers
+that reduce a stacked set without a family-specific threshold or thinning step.
+For family-aware bundling, use ``Encoding.bundle``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Function
+     - Description
+   * - ``randsel(data, p=None)``
+     - Random-selection bundling: copy each coordinate from one randomly chosen input column. ``p`` is an optional length-``N`` weight vector (default uniform, normalized internally).
+   * - ``multirandsel(data, count, p=None)``
+     - ``count`` independent ``randsel`` draws as a ``(D, count)`` array.
+   * - ``multiset(data, axis=-1)``
+     - Additive multiset: sum a stacked ``(D, N)`` set into a single ``(D,)`` vector over ``axis``.
+   * - ``multibundle(data, axis=-1)``
+     - Alias of ``multiset`` under its conventional HDC name.
+
+binding helper
+--------------
+
+Added in 2.2.0. The ``pyhdc.components.binding`` module gains a product-reduce
+helper. For non-multiplicative binders, use ``Encoding.bind``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - Function
+     - Description
+   * - ``multibind(data, axis=-1)``
+     - Multiplicative bind of a stacked ``(D, N)`` set into a single ``(D,)`` vector (product over ``axis``).
+
 similarity submodule
 ---------------------
 
@@ -140,7 +234,9 @@ The similarity module exports the four metric functions and the remap utility:
 * ``remap_to_unit(sim)`` : maps [-1, 1] -> [0, 1]
 
 Each function accepts one or two arguments in the same calling conventions
-as the ``Encoding.similarity()`` method.
+as the ``Encoding.similarity()`` method. Each metric also takes a ``mode`` of
+``"pairwise"`` or ``"cross"`` and a keyword-only ``axis``, see
+:doc:`similarity_metrics`.
 
 input_formatting submodule
 ---------------------------

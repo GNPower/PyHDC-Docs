@@ -58,16 +58,26 @@ MAP family
 .. autoclass:: MAP_I_Bits
    :show-inheritance:
 
-**Element type**: custom-width integer, default dtype ``int32``
+**Element type**: bipolar ``{-1, +1}``, saturating to a signed integer after
+bundling. Storage dtype auto-widens to the smallest signed type that holds the
+configured width (``int8`` / ``int16`` / ``int32`` / ``int64``), default ``int32``.
 
 **Extra parameters**:
 
-* ``mask``: ``int``: bitmask that defines the integer width.
-  For example, ``mask=0xFF`` gives 8-bit integers.
+* ``mask``: ``int``, default ``(2**32) - 1``. Must have the form ``2**k - 1``
+  (contiguous low bits). Selects the signed saturation width ``k``. A mask that is
+  not ``2**k - 1`` raises ``ValueError`` (use ``bit_width`` instead). Example:
+  ``mask=0xFF`` (= ``2**8 - 1``) gives 8-bit saturation in ``int8``.
+* ``bit_width``: ``int`` or ``None``, default ``None``. Explicit signed bit width
+  ``k`` (1-64), overrides ``mask`` when set.
 
-**Binding**: ElementMultiplication
+**Binding**: ElementMultiplication. Bipolar operands stay bipolar, but binding a
+*bundled* (saturated, non-bipolar) vector at a narrow width can overflow the
+storage dtype, since the product is not re-clipped. Bind before bundling, or use a
+wider width, if you need to bind sums.
 
-**Bundling**: ElementAdditionBits (element-wise sum, then a single saturating clip to the integer range)
+**Bundling**: ElementAdditionBits (element-wise sum in a wide accumulator, then a
+single saturating clip to the signed ``k``-bit range)
 
 **Similarity**: CosineSimilarity
 

@@ -57,7 +57,7 @@ Properties
 Similarity
 ^^^^^^^^^^
 
-.. py:method:: Hypervector.similarity(other=None)
+.. py:method:: Hypervector.similarity(other=None, *, axis=None, mode="pairwise")
    :no-index:
 
    Compute similarity to another hypervector (or batch), or within a single
@@ -68,8 +68,12 @@ Similarity
    :param other: A :class:`Hypervector` of the same encoding and backend. If
                  omitted, ``self`` must be a ``(D, N)`` batch and the similarity
                  of column 0 against each remaining column is returned.
+   :param axis: For a single ``(D, N, M, ...)`` batch, the batch axis to split on.
+   :param mode: ``"pairwise"`` (default) or ``"cross"``. With ``"cross"``,
+                ``self`` ``(D, P)`` and ``other`` ``(D, M)`` give the full
+                ``(P, M)`` cross-similarity matrix. ``other`` is required 
+                (``None`` raises ``ValueError``).
    :returns: ``float``, ``ndarray``, or ``Tensor`` depending on input shapes.
-             See :ref:`batched calling conventions <similarity-batched>`.
 
 Batch selection
 ^^^^^^^^^^^^^^^

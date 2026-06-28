@@ -143,6 +143,48 @@ column-wise over axis 0. The supported input modes:
      - list of scalars
      - Pairwise: ``[sim(a, c), sim(b, d)]``
 
+Cross-similarity mode
+---------------------
+
+``similarity(A, B, mode="cross")`` with ``A`` of shape ``(D, P)`` and ``B`` of
+shape ``(D, M)`` returns the full ``(P, M)`` cross-similarity matrix: ``result[i, j]`` is the
+similarity of column ``A[:, i]`` against column ``B[:, j]``. The result is
+backed by a single matmul, with no ``(D, P, M)`` intermediate.
+
+Cross mode requires two batch operands. Passing only one operand raises
+``ValueError`` at every entry point. The strict input guards live on
+``Encoding.similarity``: passing a Python-list operand or an ``axis`` argument also
+raises ``ValueError``. The ``similarity_remap`` callback, when set, is applied to
+the ``(P, M)`` result.
+
+The supported metrics are :func:`~pyhdc.similarity` over Cosine, Hamming,
+Overlap, and Angle. A metric outside that set raises ``NotImplementedError``.
+Every PyHDC provided encoding maps to one of these four, so a built-in encoding 
+will always take the matmul path.
+
+Per-metric behavior in cross mode:
+
+* **Cosine** normalizes both operands, then takes the matmul. A zero-norm column
+  is guarded so it scores 0 rather than ``nan``.
+* **Hamming** casts the operands to ``float64`` for the matmul.
+* **Overlap** keeps an asymmetric denominator: each column ``j`` is divided by
+  the nonzero count of ``B[:, j]``. Pass the bundled vectors as ``A`` and the
+  reference codebook as ``B``.
+* **Angle** uses the identity ``cos(x - y) = cos x cos y + sin x sin y``,
+  computed as two matmuls.
+
+.. code-block:: python
+
+   import pyhdc
+
+   enc = pyhdc.MAP_I(dimension=10_000)
+
+   A = enc.generate(size=(10_000, 5))   # (D, P) = (D, 5)
+   B = enc.generate(size=(10_000, 8))   # (D, M) = (D, 8)
+
+   scores = pyhdc.similarity(A, B, mode="cross")   # (P, M) = (5, 8)
+   print(scores.shape)                             # (5, 8)
+
 Axis-aware reduction and trailing-axis broadcasting
 ----------------------------------------------------
 
