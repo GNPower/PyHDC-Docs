@@ -157,6 +157,34 @@ Expected output (values will vary slightly due to randomness in the codebook):
    while      -> keyword     (keyword=+0.315, noun=-0.009)
    mirror     -> noun        (keyword=-0.022, noun=+0.294)
 
+Vectorized classification with cross-similarity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The loop above scores one query at a time. To score a whole test set in a
+single call, stack the two prototypes into a ``(D, 2)`` batch and the encoded
+test words into a ``(D, T)`` batch, then pass ``mode="cross"`` to
+:meth:`~pyhdc.Hypervector.similarity`. The result is the full ``(2, T)`` matrix
+of every prototype against every test word, and ``argmax`` down axis 0 picks the
+winning class per column:
+
+.. code-block:: python
+
+   import numpy as np
+
+   protos = pyhdc.stack([kw_prototype, noun_prototype])     # (D, 2)
+   test_words = ['import', 'lamp', 'yield', 'stone']
+   testhv = pyhdc.stack(
+    [encode_word(w, enc, char_hv) for w in test_words]      # (D, T)
+   )
+   scores = protos.similarity(testhv, mode="cross")         # (2, T)
+   labels = ['keyword', 'noun']
+   for j, w in enumerate(test_words):
+       print(w, labels[int(np.asarray(scores)[:, j].argmax())])
+
+Column ``j`` of ``scores`` holds ``[kw_score, noun_score]`` for test word ``j``,
+so this gives the same labels as the per-query loop with one matmul instead of a
+Python loop over similarity calls.
+
 ----
 
 Step 5: Measure accuracy

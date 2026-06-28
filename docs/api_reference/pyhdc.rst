@@ -9,7 +9,7 @@ Version and availability
 .. py:data:: __version__
    :type: str
 
-   Current version string, e.g. ``"2.1.0"``.
+   Current version string, e.g. ``"2.2.0"``.
 
 .. py:data:: __author__
    :type: str
@@ -185,6 +185,25 @@ encoding. They are provided for concise one-off calls.
       codebook = enc.generate(size=(10_000, 50))   # (10000, 50)
       combined = pyhdc.stack([proto, codebook])    # (10000, 51); proto is column 0
 
+.. py:function:: similarity(a, b=None, *, axis=None, mode="pairwise")
+
+   Compute similarity between hypervectors, delegating to the encoding of ``a``.
+   Pairwise by default. With ``mode="cross"`` and ``a`` a ``(D, P)`` batch and
+   ``b`` a ``(D, M)`` batch, returns the full ``(P, M)`` cross-similarity matrix.
+
+   :param a: A :class:`Hypervector` (vector or batch).
+   :param b: A second :class:`Hypervector`. If omitted (pairwise only), ``a`` must
+             be a ``(D, N)`` batch and column 0 is compared against the rest.
+   :param axis: For a single ``(D, N, M, ...)`` batch, the batch axis to split on.
+   :param mode: ``"pairwise"`` (default) or ``"cross"``.
+   :returns: ``float``, ``ndarray``, or ``Tensor``.
+
+   .. code-block:: python
+
+      A = enc.generate(size=(10_000, 5))
+      B = enc.generate(size=(10_000, 8))
+      M = pyhdc.similarity(A, B, mode="cross")   # (5, 8) matrix
+
 Global backend and device defaults
 -----------------------------------
 
@@ -248,6 +267,14 @@ All encoding classes are imported at the top level:
    * :class:`BSDC_THIN`
 
 See :doc:`encodings` for full documentation of each class.
+
+Data encoders
+-------------
+
+The :class:`Encoder` base class and the ten data encoders (``Empty``,
+``Identity``, ``Random``, ``Level``, ``Thermometer``, ``Circular``,
+``Projection``, ``Sinusoid``, ``Density``, ``FractionalPower``) are imported at
+the top level. See :doc:`encoders`.
 
 Exception classes
 ------------------

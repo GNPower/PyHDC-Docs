@@ -83,6 +83,40 @@ You can also pass two equal-length lists of ``Hypervector`` objects:
    hvs_b = [enc.generate() for _ in range(5)]
    sims  = enc.similarity(hvs_a, hvs_b)   # list of 5 floats
 
+Cross similarity: every-vs-every (P, M) matrix
+----------------------------------------------
+
+Conventions 2 and 3 above are *pairwise*: ``(D, P)`` against ``(D, P)`` gives one
+score per matching column. To score **every** column of one batch against **every**
+column of another, pass ``mode="cross"``. With ``A=(D, P)`` and ``B=(D, M)`` the
+result is the full ``(P, M)`` matrix, computed in a single matmul:
+
+.. code-block:: python
+
+   import pyhdc
+
+   enc    = pyhdc.MAP_I(dimension=10_000)
+   protos = enc.generate(size=(10_000, 3))   # 3 class prototypes
+   book   = enc.generate(size=(10_000, 5))   # 5 candidates
+
+   scores = protos.similarity(book, mode="cross")   # shape (3, 5)
+   # scores[i, j] = similarity(protos[:, i], book[:, j])
+
+The module-level form is equivalent:
+
+.. code-block:: python
+
+   scores = pyhdc.similarity(protos, book, mode="cross")   # (3, 5)
+
+This is the vectorized way to classify a whole test batch against a prototype
+bank: ``argmax`` down axis 0 picks the best prototype for each test column.
+
+``mode="cross"`` requires two batch operands, calling it with the second operand
+missing raises ``ValueError``. (At the ``Encoding.similarity`` level, passing a
+Python list operand or an ``axis=`` argument also raises ``ValueError``.) The
+encoding's ``similarity_remap`` (if set) is applied to the matrix, so a remapped
+BSC returns a ``(P, M)`` matrix in ``[0, 1]``.
+
 Similarity on (D, N, M) tensors
 -------------------------------
 

@@ -4,7 +4,7 @@ Components Module
 .. module:: pyhdc.components
 
 The ``pyhdc.components`` module contains the low-level building blocks used
-internally by all encodings. Most users do not need to import these directly;
+internally by all encodings. Most users do not need to import these directly,
 they are assembled automatically by the encoding classes via ``EncodingSpec``.
 
 Use the components module when:
@@ -22,6 +22,9 @@ pyhdc.components.similarity
 
    Cosine similarity between two vectors or batches.
 
+   With ``mode="cross"`` and two batches ``A=(D, P)``, ``B=(D, M)``, returns the
+   full ``(P, M)`` cross-similarity matrix.
+
    :returns: ``float``, ``ndarray``, or ``Tensor`` in [-1, 1].
              Operates column-wise over axis 0 of a ``(D, N)`` batch. See the
              :ref:`batched calling conventions <similarity-batched>`.
@@ -32,6 +35,9 @@ pyhdc.components.similarity
 
    Appropriate for dense binary vectors (BSC encoding).
 
+   With ``mode="cross"`` and two batches ``A=(D, P)``, ``B=(D, M)``, returns the
+   full ``(P, M)`` cross-similarity matrix.
+
    :returns: Value in [-1, 1]. (Was [0, 1] in v1.0.x.)
 
 .. autofunction:: Overlap
@@ -40,6 +46,10 @@ pyhdc.components.similarity
 
    Appropriate for sparse binary vectors (BSDC family).
 
+   With ``mode="cross"``, returns the full ``(P, M)`` matrix. Normalization stays
+   asymmetric (each column ``m`` divided by the nonzero count of ``B[:, m]``), so
+   pass the bundled vectors as ``A`` and the reference codebook as ``B``.
+
    :returns: Value in [-1, 1]. (Was [0, 1] in v1.0.x.)
 
 .. autofunction:: AngleDistance
@@ -47,6 +57,9 @@ pyhdc.components.similarity
    Cosine of element-wise angle differences.
 
    Appropriate for phase/angle encodings (FHRR).
+
+   With ``mode="cross"`` and two batches ``A=(D, P)``, ``B=(D, M)``, returns the
+   full ``(P, M)`` cross-similarity matrix.
 
    :returns: Value in [-1, 1].
 
@@ -124,6 +137,14 @@ pyhdc.components.binding
 
    Element-wise modular angle subtraction. Used by FHRR for unbinding.
 
+.. autofunction:: multibind
+
+   Multiplicative bind of a stacked ``(D, N)`` set into a single ``(D,)`` vector
+   (product over the batch axis). Element-wise binding for bipolar/MAP families,
+   for non-multiplicative binders use ``Encoding.bind``.
+
+   :param axis: Batch axis to reduce. Default ``-1``.
+
 pyhdc.components.bundling
 --------------------------
 
@@ -171,6 +192,33 @@ pyhdc.components.bundling
    Bitwise OR then random thinning to a maximum density. Used by BSDC_THIN.
 
    :param density: Maximum output density (fraction of 1-bits) after thinning (float, default 0.5).
+
+.. autofunction:: multiset
+
+   Additive multiset: sum a stacked ``(D, N)`` set into a single ``(D,)`` vector
+   over the batch axis. For family-specific bundling (threshold, normalize, thin)
+   use ``Encoding.bundle``.
+
+   :param axis: Batch axis to reduce. Default ``-1``.
+
+.. autofunction:: multibundle
+
+   Alias of :func:`multiset` under its conventional HDC name.
+
+.. autofunction:: randsel
+
+   Random-selection bundling: reduce a ``(D, N)`` batch to ``(D,)`` by copying each
+   coordinate from one randomly chosen input column.
+
+   :param p: Optional length-``N`` weights over the columns (default uniform).
+             Normalized internally, so they need not sum to 1.
+
+.. autofunction:: multirandsel
+
+   Produce ``count`` independent :func:`randsel` draws as a ``(D, count)`` array.
+
+   :param count: Number of independent random-selection draws.
+   :param p: Optional column weights (see :func:`randsel`).
 
 pyhdc.components.elements
 --------------------------
@@ -322,3 +370,74 @@ encoding families that use it.
    * - ``normalize``
      - :func:`SignNormalize`
      - MAP_C, MAP_I, MAP_I_Bits, MAP_B
+
+pyhdc.components.basis
+--------------------------
+
+.. currentmodule:: pyhdc.components.basis
+
+Family-aware basis builders that produce a ``(D, count)`` codebook
+array in an encoding's value domain and backend. The codebook encoders
+(:class:`~pyhdc.Level`, :class:`~pyhdc.Thermometer`, :class:`~pyhdc.Circular`, etc.) 
+hold one of these as their basis. Each builder has signature
+``fn(encoding, count, dimension=None) -> (D, count)`` array.
+
+.. autofunction:: empty
+
+   ``count`` all-zero hypervectors as a ``(D, count)`` array.
+
+.. autofunction:: random
+
+   ``count`` independent random hypervectors as a ``(D, count)`` codebook.
+
+.. autofunction:: identity
+
+   ``count`` copies of the binding-identity element ``e`` (where ``bind(x, e) == x``).
+   Defined for the MAP, HRR, FHRR, and BSC families. Raises ``NotImplementedError``
+   for VTB, MBAT, and the BSDC family.
+
+.. autofunction:: level
+
+   A linear level codebook: adjacent columns correlated, ends near-orthogonal.
+   Family-agnostic.
+
+.. autofunction:: circular
+
+   A circular (ring) level codebook: similarity wraps, so level 0 ~ level L-1.
+   Family-agnostic.
+
+.. autofunction:: thermometer
+
+   A deterministic thermometer (cumulative unary) codebook. Discrete families only,
+   raises ``NotImplementedError`` for continuous and phase families.
+
+.. autofunction:: family_endpoints
+
+   Return the ``(low, high)`` element endpoints for an encoding's value domain.
+   Defined for the discrete (bipolar, binary, sparse) families, raises
+   ``NotImplementedError`` for MAP_C, the HRR family, VTB, MBAT, and FHRR.
+
+.. autofunction:: binding_identity
+
+   Return the binding-identity element ``e`` as a ``(D,)`` array (all-ones for MAP
+   multiply, all-zeros for BSC XOR and FHRR angle addition, the impulse
+   ``[1, 0, ...]`` for HRR convolution). Raises ``NotImplementedError`` for VTB,
+   MBAT, and the BSDC family.
+
+pyhdc.components.quantization
+--------------------------------
+
+.. currentmodule:: pyhdc.components.quantization
+
+Maps continuous element values to a bipolar form, dimension-first,
+on both backends.
+
+.. autofunction:: hard_quantize
+
+   Quantize to ``{-1, 0, +1}`` by sign.
+
+.. autofunction:: soft_quantize
+
+   Smooth bipolar surrogate ``tanh(data / temperature)`` in ``(-1, 1)``.
+
+   :param temperature: Softness of the surrogate. Default ``1.0``.

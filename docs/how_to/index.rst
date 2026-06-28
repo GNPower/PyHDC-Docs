@@ -13,6 +13,8 @@ the basics. If you are new to PyHDC, start with the
      - Problem solved
    * - :doc:`choose_encoding`
      - Which encoding should I use for my task?
+   * - :doc:`encode_data`
+     - How do I turn scalars and feature vectors into hypervectors?
    * - :doc:`bundle_hypervectors`
      - How do I bundle multiple hypervectors?
    * - :doc:`bind_unbind`
@@ -42,6 +44,7 @@ the basics. If you are new to PyHDC, start with the
    :hidden:
 
    choose_encoding
+   encode_data
    bundle_hypervectors
    bind_unbind
    compute_similarity

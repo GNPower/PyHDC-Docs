@@ -17,8 +17,9 @@ meaning as geometry.
    obj   = color.bind(shape)          # association: "colored shape"
    print(obj.unbind(shape).similarity(color))   # ~= 1.0
 
-PyHDC supports **14 encoding schemes** (MAP, HRR, FHRR, BSC, BSDC, VTB,
-MBAT, etc.), **7 random generator families** for reproducible experiments, and a
+PyHDC supports **15 encoding schemes** (MAP, HRR, FHRR, BSC, BSDC, VTB,
+MBAT, etc.), **7 random generator families** for reproducible experiments,
+**10 data encoders** for mapping scalars and feature vectors into hypervectors, and a
 **dual NumPy / PyTorch backend** with GPU support.
 
 ----

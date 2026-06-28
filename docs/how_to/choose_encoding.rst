@@ -177,3 +177,13 @@ changes:
        print(f"{EncClass.__name__:12s}  "
              f"sim(a,a)={a.similarity(a):.2f}  "
              f"sim(a,bind(a,b))={a.similarity(c):.2f}")
+
+.. note::
+
+   Choosing an encoding picks the algebra (bind / bundle / similarity). To turn raw
+   data (scalars, periodic values, or feature vectors) into hypervectors in that
+   encoding, use a data encoder. See :doc:`encode_data`. A few encoders are
+   restricted by family: ``Thermometer`` and ``Density`` need a discrete family
+   (MAP_I/MAP_B/BSC/BSDC), ``Projection`` needs a family with a normalize step
+   (MAP/HRR/VTB/MBAT/FHRR), and ``FractionalPower`` is defined only for the FHRR and
+   the HRR families.

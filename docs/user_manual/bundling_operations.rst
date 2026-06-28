@@ -81,9 +81,9 @@ ElementAdditionBits
 **Used by**: MAP_I_Bits
 
 Element-wise sum in a wide (int64) accumulator, then a single saturating clip to
-the int32 range. The clip happens once after the full reduction, not per addition, 
-so a running sum that would overflow mid-accumulation saturates at the bounds 
-instead of wrapping.
+the configured signed bit-width range (default int32). The clip happens once after the 
+full reduction, not per addition, so a running sum that would overflow mid-accumulation 
+saturates at the bounds instead of wrapping.
 
 ElementAdditionBinaryThreshold
 --------------------------------

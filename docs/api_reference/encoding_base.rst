@@ -56,7 +56,9 @@ All encoding classes share this constructor signature:
    * - ``mask``
      - ``int`` or ``None``
      - ``None``
-     - Bit mask for :class:`MAP_I_Bits`; sets the integer bit width.
+     - Bit mask for :class:`MAP_I_Bits` must have the form ``2**k - 1`` and
+       sets the signed bit width ``k``. :class:`MAP_I_Bits` also accepts a
+       separate ``bit_width`` argument that overrides ``mask``.
        Ignored by all other encodings.
    * - ``generator``
      - :class:`~pyhdc.generation.HDCGenerator` or ``None``
@@ -135,6 +137,9 @@ Methods
    compared against each remaining column. See
    :ref:`batched calling conventions <similarity-batched>`.
 
+   :param mode: ``"pairwise"`` (default) or ``"cross"``. With ``"cross"``, a
+                ``(D, P)`` batch and a ``(D, M)`` batch give the full ``(P, M)``
+                cross-similarity matrix.
    :returns: ``float``, ``ndarray``, ``Tensor``, or ``list`` depending on inputs.
 
 .. py:method:: Encoding.bundle(*hypervectors, axis=None, batch_dim=None)
@@ -238,6 +243,17 @@ EncodingSpec dataclass
       * - ``generator_output_type``
         - ``"bits"``, ``"words"``, or ``"floats"``: the output type this
           encoding requires from a custom generator
+      * - ``permute_fn``
+        - Callable for cyclic-shift permutation. ``None`` falls back to the shared
+          ``CyclicShift`` so every encoding supports ``permute``
+      * - ``inverse_fn``
+        - Callable for the binding inverse. Defaults to ``RaiseNotImplementedError``
+      * - ``normalize_fn``
+        - Callable normalizing to the encoding's entry domain. Defaults to
+          ``RaiseNotImplementedError``
+      * - ``negative_fn``
+        - Callable for the additive (bundling) inverse. Defaults to
+          ``RaiseNotImplementedError``
 
 BackendManager
 --------------
